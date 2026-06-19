@@ -1,6 +1,6 @@
 import { useUserStore } from '../store/useUserStore';
 
-const BASE_URL = 'https://elderoplusbackend.onrender.com';
+const BASE_URL = import.meta.env.DEV ? '' : 'https://elderoplusbackend.onrender.com';
 
 export function useApi() {
   const token = useUserStore((s) => s.token);

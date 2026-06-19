@@ -10,7 +10,7 @@ import Settings from './pages/Settings';
 import Admin from './pages/Admin';
 import db from './db/dexie';
 
-const BASE_URL = 'https://elderoplusbackend.onrender.com';
+const BASE_URL = import.meta.env.DEV ? '' : 'https://elderoplusbackend.onrender.com';
 
 function RequireAuth({ children }) {
   const isAuthenticated = useUserStore((s) => s.isAuthenticated)();
