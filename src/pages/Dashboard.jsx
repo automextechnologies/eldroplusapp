@@ -267,6 +267,16 @@ export default function Dashboard() {
             <p className="text-white/70 text-sm font-medium">{greeting}</p>
             <h1 className="font-display font-extrabold text-2xl text-white mt-0.5">{firstName}</h1>
             <p className="text-white/60 text-sm mt-1">{format(new Date(), 'EEEE, MMMM d')}</p>
+            {user.batchName && (
+              <div className="mt-2">
+                <span className="inline-flex items-center gap-1.5 bg-white/15 text-white border border-white/20 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider">
+                  <svg className="w-3 h-3 text-white/80" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                  </svg>
+                  {user.batchName}
+                </span>
+              </div>
+            )}
           </div>
           <div className="flex flex-col items-end gap-2.5">
             <div className="bg-white/15 border border-white/20 rounded-2xl px-3 py-1.5 backdrop-blur-sm">

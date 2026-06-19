@@ -10,12 +10,16 @@ export default function Admin() {
   const { logout, user: adminUser } = useUserStore();
 
   const [customers, setCustomers] = useState([]);
+  const [batches, setBatches] = useState([]);
+  const [activeTab, setActiveTab] = useState('customers'); // 'customers' | 'batches'
+  const [selectedBatchFilter, setSelectedBatchFilter] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
 
   // Form State
+  const [editingCustomer, setEditingCustomer] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formLoading, setFormLoading] = useState(false);
   const [formError, setFormError] = useState('');
@@ -28,10 +32,27 @@ export default function Admin() {
     heightCm: '',
     weightKg: '',
     startDate: new Date().toISOString().split('T')[0],
+    batchId: '',
   });
+
+  // Batch Form State
+  const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
+  const [batchFormData, setBatchFormData] = useState({
+    name: '',
+    startDate: new Date().toISOString().split('T')[0],
+  });
+  const [batchFormLoading, setBatchFormLoading] = useState(false);
+  const [batchFormError, setBatchFormError] = useState('');
+
+  // Customer Tasks States
+  const [taskViewerCustomer, setTaskViewerCustomer] = useState(null);
+  const [customerTasks, setCustomerTasks] = useState([]);
+  const [tasksLoading, setTasksLoading] = useState(false);
+  const [selectedTaskDay, setSelectedTaskDay] = useState(null);
 
   useEffect(() => {
     fetchCustomers();
+    fetchBatches();
   }, []);
 
   async function fetchCustomers() {
@@ -47,6 +68,15 @@ export default function Admin() {
     }
   }
 
+  async function fetchBatches() {
+    try {
+      const data = await api.get('/api/admin/batches');
+      setBatches(data.batches || []);
+    } catch (err) {
+      console.error('Failed to fetch batches:', err);
+    }
+  }
+
   async function handleLogout() {
     logout();
     navigate('/login');
@@ -57,7 +87,13 @@ export default function Admin() {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  const handleBatchInputChange = (e) => {
+    const { name, value } = e.target;
+    setBatchFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
   const openCreateModal = () => {
+    setEditingCustomer(null);
     setFormData({
       name: '',
       phone: '',
@@ -67,12 +103,30 @@ export default function Admin() {
       heightCm: '',
       weightKg: '',
       startDate: new Date().toISOString().split('T')[0],
+      batchId: '',
     });
     setFormError('');
     setIsModalOpen(true);
   };
 
-  const handleCreateCustomer = async (e) => {
+  const openEditModal = (customer) => {
+    setEditingCustomer(customer);
+    setFormData({
+      name: customer.name || '',
+      phone: customer.phone || '',
+      password: '',
+      age: customer.age !== undefined ? String(customer.age) : '',
+      gender: customer.gender || 'male',
+      heightCm: customer.heightCm !== undefined ? String(customer.heightCm) : '',
+      weightKg: customer.weightKg !== undefined ? String(customer.weightKg) : '',
+      startDate: customer.startDate ? new Date(customer.startDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+      batchId: customer.batchId?._id || customer.batchId || '',
+    });
+    setFormError('');
+    setIsModalOpen(true);
+  };
+
+  const handleSubmitForm = async (e) => {
     e.preventDefault();
     setFormError('');
     setFormLoading(true);
@@ -80,7 +134,7 @@ export default function Admin() {
     // Basic Validation
     if (!formData.name.trim()) { setFormError('Name is required'); setFormLoading(false); return; }
     if (!formData.phone.trim()) { setFormError('Phone number is required'); setFormLoading(false); return; }
-    if (!formData.password.trim()) { setFormError('Password is required'); setFormLoading(false); return; }
+    if (!editingCustomer && !formData.password.trim()) { setFormError('Password is required'); setFormLoading(false); return; }
 
     try {
       const payload = {
@@ -88,27 +142,108 @@ export default function Admin() {
         age: formData.age ? Number(formData.age) : undefined,
         heightCm: formData.heightCm ? Number(formData.heightCm) : undefined,
         weightKg: formData.weightKg ? Number(formData.weightKg) : undefined,
+        batchId: formData.batchId || null,
       };
 
-      const res = await api.post('/api/admin/customers', payload);
-      setCustomers((prev) => [res.customer, ...prev]);
+      if (editingCustomer) {
+        payload.id = editingCustomer._id;
+        if (!formData.password.trim()) {
+          delete payload.password;
+        }
+        const res = await api.put('/api/admin/customers', payload);
+        setCustomers((prev) => prev.map((c) => c._id === res.customer._id ? res.customer : c));
+        setSuccessMsg(`Customer "${res.customer.name}" updated successfully!`);
+      } else {
+        const res = await api.post('/api/admin/customers', payload);
+        setCustomers((prev) => [res.customer, ...prev]);
+        setSuccessMsg(`Customer "${res.customer.name}" created successfully!`);
+      }
+
       setIsModalOpen(false);
-      setSuccessMsg(`Customer "${res.customer.name}" created successfully!`);
       setTimeout(() => setSuccessMsg(''), 5000);
+      fetchBatches();
     } catch (err) {
-      setFormError(err.message || 'Failed to create customer');
+      setFormError(err.message || 'Failed to save customer');
     } finally {
       setFormLoading(false);
     }
   };
 
+  const handleCreateBatch = async (e) => {
+    e.preventDefault();
+    setBatchFormError('');
+    setBatchFormLoading(true);
+    if (!batchFormData.name.trim()) {
+      setBatchFormError('Batch name is required');
+      setBatchFormLoading(false);
+      return;
+    }
+    try {
+      const res = await api.post('/api/admin/batches', batchFormData);
+      setBatches((prev) => [res.batch, ...prev]);
+      setIsBatchModalOpen(false);
+      setBatchFormData({
+        name: '',
+        startDate: new Date().toISOString().split('T')[0],
+      });
+      setSuccessMsg(`Batch "${res.batch.name}" created successfully!`);
+      setTimeout(() => setSuccessMsg(''), 5000);
+    } catch (err) {
+      setBatchFormError(err.message || 'Failed to create batch');
+    } finally {
+      setBatchFormLoading(false);
+    }
+  };
+
+  const openTaskViewer = async (customer) => {
+    setTaskViewerCustomer(customer);
+    setCustomerTasks([]);
+    setTasksLoading(true);
+    setSelectedTaskDay(null);
+    try {
+      const data = await api.get(`/api/admin/customer-tasks?userId=${customer._id}`);
+      setCustomerTasks(data.logs || []);
+    } catch (err) {
+      console.error('Failed to fetch customer tasks:', err);
+    } finally {
+      setTasksLoading(false);
+    }
+  };
+
+  const handleUpdateTaskLog = async (dayNumber, taskId, completed, amount) => {
+    if (!taskViewerCustomer) return;
+    try {
+      const res = await api.put('/api/admin/customer-tasks', {
+        userId: taskViewerCustomer._id,
+        dayNumber,
+        taskId,
+        completed,
+        amount
+      });
+      setCustomerTasks((prev) => {
+        const exists = prev.some((l) => l.dayNumber === dayNumber && l.taskId === taskId);
+        if (exists) {
+          return prev.map((l) => (l.dayNumber === dayNumber && l.taskId === taskId) ? res.log : l);
+        } else {
+          return [...prev, res.log];
+        }
+      });
+    } catch (err) {
+      console.error('Failed to update task log:', err);
+    }
+  };
+
   // Stats Calculations
   const totalCount = customers.length;
-  const avgAge = totalCount
-    ? Math.round(customers.reduce((acc, c) => acc + (c.age || 0), 0) / customers.filter((c) => c.age).length || 0)
+  
+  const ageCustomers = customers.filter((c) => typeof c.age === 'number' && c.age > 0);
+  const avgAge = ageCustomers.length
+    ? Math.round(ageCustomers.reduce((acc, c) => acc + c.age, 0) / ageCustomers.length)
     : 0;
-  const avgWeight = totalCount
-    ? Math.round((customers.reduce((acc, c) => acc + (c.weightKg || 0), 0) / customers.filter((c) => c.weightKg).length || 0) * 10) / 10
+
+  const weightCustomers = customers.filter((c) => typeof c.weightKg === 'number' && c.weightKg > 0);
+  const avgWeight = weightCustomers.length
+    ? Math.round((weightCustomers.reduce((acc, c) => acc + c.weightKg, 0) / weightCustomers.length) * 10) / 10
     : 0;
 
   const validBmis = customers
@@ -121,8 +256,8 @@ export default function Admin() {
   // Filtered List
   const filteredCustomers = customers.filter(
     (c) =>
-      c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      c.phone.includes(searchQuery)
+      (c.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (c.phone || '').includes(searchQuery)
   );
 
   return (
@@ -180,231 +315,311 @@ export default function Admin() {
           </div>
         )}
 
-        {/* Overview Dashboard Stats */}
-        <section className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8">
-          {[
-            {
-              label: 'Total Customers',
-              value: totalCount,
-              desc: 'Registered users',
-              color: 'from-brand-50 to-brand-100/50 border-brand-200 text-brand-700',
-              icon: (
-                <svg className="w-6 h-6 text-brand-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                </svg>
-              ),
-            },
-            {
-              label: 'Average Age',
-              value: avgAge ? `${avgAge} yrs` : '—',
-              desc: 'Target demographic',
-              color: 'from-purple-50 to-purple-100/50 border-purple-200 text-purple-700',
-              icon: (
-                <svg className="w-6 h-6 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                </svg>
-              ),
-            },
-            {
-              label: 'Average Weight',
-              value: avgWeight ? `${avgWeight} kg` : '—',
-              desc: 'Tracked body stats',
-              color: 'from-blue-50 to-blue-100/50 border-blue-200 text-blue-700',
-              icon: (
-                <svg className="w-6 h-6 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
-                </svg>
-              ),
-            },
-            {
-              label: 'Average BMI',
-              value: avgBmi || '—',
-              desc: 'Health index health',
-              color: 'from-emerald-50 to-emerald-100/50 border-emerald-200 text-emerald-700',
-              icon: (
-                <svg className="w-6 h-6 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                </svg>
-              ),
-            },
-          ].map((stat, idx) => (
-            <div
-              key={idx}
-              className={`p-5 rounded-3xl border bg-gradient-to-br flex items-center justify-between shadow-sm premium-card`}
-            >
-              <div className="space-y-1">
-                <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">{stat.label}</p>
-                <p className="text-2xl font-display font-black text-gray-900">{stat.value}</p>
-                <p className="text-xs text-muted font-medium">{stat.desc}</p>
-              </div>
-              <div className={`w-12 h-12 rounded-2xl bg-white flex items-center justify-center border shadow-inner-sm`}>
-                {stat.icon}
-              </div>
-            </div>
-          ))}
-        </section>
 
-        {/* Search & Actions Bar */}
-        <section className="flex flex-col sm:flex-row gap-4 items-stretch sm:items-center justify-between mb-6">
-          <div className="relative flex-1 max-w-md">
-            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-            </span>
-            <input
-              type="text"
-              placeholder="Search by name or phone..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 rounded-2xl border border-border bg-white text-sm focus:outline-none focus:ring-2 focus:ring-brand-400/40 focus:border-brand-500 transition-all placeholder:text-gray-400 text-gray-900"
-            />
-          </div>
+        {/* Tabs Bar */}
+        <div className="flex gap-6 border-b border-gray-200 mb-6">
           <button
-            onClick={openCreateModal}
-            className="btn-brand sm:w-auto px-6 py-3 rounded-2xl flex items-center justify-center gap-2 text-sm shadow-brand hover:scale-[1.01]"
-            style={{ minHeight: '46px' }}
+            onClick={() => setActiveTab('customers')}
+            className={`pb-3 font-display font-extrabold text-sm border-b-2 transition-all ${
+              activeTab === 'customers' ? 'border-brand-500 text-brand-600' : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
           >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 4v16m8-8H4" />
-            </svg>
-            Create Customer
+            Customers Directory
           </button>
-        </section>
+          <button
+            onClick={() => setActiveTab('batches')}
+            className={`pb-3 font-display font-extrabold text-sm border-b-2 transition-all ${
+              activeTab === 'batches' ? 'border-brand-500 text-brand-600' : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            Batches & Classes
+          </button>
+        </div>
 
-        {/* Customer Listing */}
-        <section className="bg-white rounded-3xl border border-border shadow-sm overflow-hidden">
-          <div className="p-6 border-b border-border flex items-center justify-between">
-            <h2 className="font-display font-extrabold text-base text-gray-900">
-              Customers Directory
-            </h2>
-            <span className="px-2.5 py-1 bg-brand-50 text-brand-700 text-xs font-bold rounded-lg border border-brand-100">
-              {filteredCustomers.length} total
-            </span>
-          </div>
-
-          {loading ? (
-            <div className="p-6 space-y-4">
-              {[1, 2, 3].map((n) => (
-                <div key={n} className="flex items-center gap-4 py-2">
-                  <div className="w-12 h-12 rounded-2xl skeleton shrink-0" />
-                  <div className="flex-1 space-y-2">
-                    <div className="h-4 w-1/4 skeleton" />
-                    <div className="h-3 w-1/3 skeleton" />
-                  </div>
-                  <div className="h-8 w-20 skeleton shrink-0" />
+        {activeTab === 'customers' ? (
+          <>
+            {/* Search & Actions Bar */}
+            <section className="flex flex-col md:flex-row gap-4 items-stretch md:items-center justify-between mb-6">
+              <div className="flex flex-col sm:flex-row gap-3 flex-1 max-w-2xl">
+                <div className="relative flex-1">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                  </span>
+                  <input
+                    type="text"
+                    placeholder="Search by name or phone..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full pl-10 pr-4 py-3 rounded-2xl border border-border bg-white text-sm focus:outline-none focus:ring-2 focus:ring-brand-400/40 focus:border-brand-500 transition-all placeholder:text-gray-400 text-gray-900"
+                  />
                 </div>
-              ))}
-            </div>
-          ) : filteredCustomers.length === 0 ? (
-            <div className="p-12 text-center flex flex-col items-center justify-center">
-              <div className="w-16 h-16 rounded-2xl bg-brand-50 flex items-center justify-center text-brand-500 mb-4 border border-brand-100">
-                <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                </svg>
+                <select
+                  value={selectedBatchFilter}
+                  onChange={(e) => setSelectedBatchFilter(e.target.value)}
+                  className="rounded-2xl border border-border bg-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-400/40 focus:border-brand-500 transition-all text-gray-900"
+                >
+                  <option value="">All Batches / Classes</option>
+                  {batches.map((b) => (
+                    <option key={b._id} value={b._id}>
+                      {b.name}
+                    </option>
+                  ))}
+                </select>
               </div>
-              <h3 className="font-display font-bold text-gray-900 mb-1">No customers found</h3>
-              <p className="text-sm text-gray-500 max-w-xs">
-                {searchQuery ? 'Adjust your search queries to see more entries.' : 'Add your first customer by clicking the button above.'}
-              </p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse text-left">
-                <thead>
-                  <tr className="bg-gradient-to-r from-brand-50/40 to-transparent border-b border-border">
-                    <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Customer</th>
-                    <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Details</th>
-                    <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Body Stats & BMI</th>
-                    <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Joined Date</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {filteredCustomers.map((customer) => {
-                    const initials = customer.name
-                      ?.split(' ')
-                      .map((n) => n[0])
-                      .join('')
-                      .slice(0, 2)
-                      .toUpperCase() || '?';
-                    const bmi = calcBMI(customer.heightCm, customer.weightKg);
-                    const bmiCat = getBMICategory(bmi);
+              <button
+                onClick={openCreateModal}
+                className="btn-brand sm:w-auto px-6 py-3 rounded-2xl flex items-center justify-center gap-2 text-sm shadow-brand hover:scale-[1.01]"
+                style={{ minHeight: '46px' }}
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 4v16m8-8H4" />
+                </svg>
+                Create Customer
+              </button>
+            </section>
 
-                    return (
-                      <tr key={customer._id} className="hover:bg-brand-50/10 transition-colors">
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center gap-4">
-                            <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-brand-100 to-brand-200 text-brand-700 flex items-center justify-center font-display font-extrabold text-sm border border-brand-200/50 shadow-inner-sm shrink-0">
-                              {initials}
-                            </div>
-                            <div>
-                              <p className="font-display font-bold text-gray-900 text-[15px]">{customer.name}</p>
-                              <p className="text-xs text-muted font-mono font-semibold">{customer.phone}</p>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="space-y-0.5">
-                            <p className="text-sm font-semibold text-gray-800">
-                              {customer.age ? `${customer.age} years old` : '—'}
-                            </p>
-                            <p className="text-xs text-muted font-bold capitalize">
-                              {customer.gender || '—'}
-                            </p>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          {customer.heightCm || customer.weightKg ? (
-                            <div className="flex items-center gap-4">
-                              <div className="space-y-0.5 text-xs font-semibold text-gray-700">
-                                <p>{customer.heightCm ? `${customer.heightCm} cm` : '—'} ht</p>
-                                <p>{customer.weightKg ? `${customer.weightKg} kg` : '—'} wt</p>
-                              </div>
-                              {bmi && (
-                                <div className={`px-2.5 py-1 rounded-xl border ${bmiCat.color} ${bmiCat.bg} border-current/20 flex flex-col items-center justify-center shrink-0`}>
-                                  <span className="font-mono font-extrabold text-sm leading-none">{bmi.toFixed(1)}</span>
-                                  <span className="text-[8px] font-black uppercase tracking-wider mt-0.5">{bmiCat.label}</span>
-                                </div>
-                              )}
-                            </div>
-                          ) : (
-                            <span className="text-xs text-muted font-medium">—</span>
-                          )}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <p className="text-sm font-semibold text-gray-900">
-                            {customer.startDate ? new Date(customer.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
-                          </p>
-                          <p className="text-[10px] text-brand-500 font-bold uppercase tracking-wider mt-0.5">
-                            Active Challenge
-                          </p>
-                        </td>
+            {/* Customer Listing */}
+            <section className="bg-white rounded-3xl border border-border shadow-sm overflow-hidden">
+              <div className="p-6 border-b border-border flex items-center justify-between">
+                <h2 className="font-display font-extrabold text-base text-gray-900">
+                  Customers Directory
+                </h2>
+                <span className="px-2.5 py-1 bg-brand-50 text-brand-700 text-xs font-bold rounded-lg border border-brand-100">
+                  {customers.filter(c => selectedBatchFilter ? (c.batchId?._id || c.batchId) === selectedBatchFilter : true).length} total
+                </span>
+              </div>
+
+              {loading ? (
+                <div className="p-6 space-y-4">
+                  {[1, 2, 3].map((n) => (
+                    <div key={n} className="flex items-center gap-4 py-2">
+                      <div className="w-12 h-12 rounded-2xl skeleton shrink-0" />
+                      <div className="flex-1 space-y-2">
+                        <div className="h-4 w-1/4 skeleton" />
+                        <div className="h-3 w-1/3 skeleton" />
+                      </div>
+                      <div className="h-8 w-20 skeleton shrink-0" />
+                    </div>
+                  ))}
+                </div>
+              ) : customers.filter(c => {
+                const matchesSearch = (c.name || '').toLowerCase().includes(searchQuery.toLowerCase()) || (c.phone || '').includes(searchQuery);
+                const matchesBatch = selectedBatchFilter ? (c.batchId?._id || c.batchId) === selectedBatchFilter : true;
+                return matchesSearch && matchesBatch;
+              }).length === 0 ? (
+                <div className="p-12 text-center flex flex-col items-center justify-center">
+                  <div className="w-16 h-16 rounded-2xl bg-brand-50 flex items-center justify-center text-brand-500 mb-4 border border-brand-100">
+                    <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                    </svg>
+                  </div>
+                  <h3 className="font-display font-bold text-gray-900 mb-1">No customers found</h3>
+                  <p className="text-sm text-gray-500 max-w-xs">
+                    {searchQuery || selectedBatchFilter ? 'Adjust your filters to see more entries.' : 'Add your first customer by clicking the button above.'}
+                  </p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse text-left">
+                    <thead>
+                      <tr className="bg-gradient-to-r from-brand-50/40 to-transparent border-b border-border">
+                        <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Customer</th>
+                        <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Batch / Class</th>
+                        <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Details</th>
+                        <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Body Stats & BMI</th>
+                        <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Joined Date</th>
+                        <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Actions</th>
                       </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </section>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {customers
+                        .filter(c => {
+                          const matchesSearch = (c.name || '').toLowerCase().includes(searchQuery.toLowerCase()) || (c.phone || '').includes(searchQuery);
+                          const matchesBatch = selectedBatchFilter ? (c.batchId?._id || c.batchId) === selectedBatchFilter : true;
+                          return matchesSearch && matchesBatch;
+                        })
+                        .map((customer) => {
+                          const initials = customer.name
+                            ?.split(' ')
+                            .filter(Boolean)
+                            .map((n) => n[0])
+                            .join('')
+                            .slice(0, 2)
+                            .toUpperCase() || '?';
+                          const bmi = calcBMI(customer.heightCm, customer.weightKg);
+                          const bmiCat = getBMICategory(bmi);
+
+                          return (
+                            <tr key={customer._id} className="hover:bg-brand-50/10 transition-colors">
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <div className="flex items-center gap-4">
+                                  <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-brand-100 to-brand-200 text-brand-700 flex items-center justify-center font-display font-extrabold text-sm border border-brand-200/50 shadow-inner-sm shrink-0">
+                                    {initials}
+                                  </div>
+                                  <div>
+                                    <p className="font-display font-bold text-gray-900 text-[15px]">{customer.name}</p>
+                                    <p className="text-xs text-muted font-mono font-semibold">{customer.phone}</p>
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <span className="px-2.5 py-1 bg-gray-100 text-gray-700 text-xs font-bold rounded-lg border border-border">
+                                  {customer.batchId?.name || 'No Batch (Individual)'}
+                                </span>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <div className="space-y-0.5">
+                                  <p className="text-sm font-semibold text-gray-800">
+                                    {customer.age ? `${customer.age} years old` : '—'}
+                                  </p>
+                                  <p className="text-xs text-muted font-bold capitalize">
+                                    {customer.gender || '—'}
+                                  </p>
+                                </div>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                {customer.heightCm || customer.weightKg ? (
+                                  <div className="flex items-center gap-4">
+                                    <div className="space-y-0.5 text-xs font-semibold text-gray-700">
+                                      <p>{customer.heightCm ? `${customer.heightCm} cm` : '—'} ht</p>
+                                      <p>{customer.weightKg ? `${customer.weightKg} kg` : '—'} wt</p>
+                                    </div>
+                                    {bmi && (
+                                      <div className={`px-2.5 py-1 rounded-xl border ${bmiCat.color} ${bmiCat.bg} border-current/20 flex flex-col items-center justify-center shrink-0`}>
+                                        <span className="font-mono font-extrabold text-sm leading-none">{bmi.toFixed(1)}</span>
+                                        <span className="text-[8px] font-black uppercase tracking-wider mt-0.5">{bmiCat.label}</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <span className="text-xs text-muted font-medium">—</span>
+                                )}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <p className="text-sm font-semibold text-gray-900">
+                                  {customer.startDate ? new Date(customer.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
+                                </p>
+                                <p className="text-[10px] text-brand-500 font-bold uppercase tracking-wider mt-0.5">
+                                  Challenge Start Date
+                                </p>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-right space-x-2">
+                                <button
+                                  onClick={() => openTaskViewer(customer)}
+                                  className="px-3 py-1.5 text-xs font-bold text-emerald-600 hover:text-emerald-700 bg-emerald-50 hover:bg-emerald-100/70 rounded-xl transition-colors inline-flex items-center gap-1 border border-emerald-200/50"
+                                >
+                                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                                  </svg>
+                                  Tasks
+                                </button>
+                                <button
+                                  onClick={() => openEditModal(customer)}
+                                  className="px-3 py-1.5 text-xs font-bold text-brand-600 hover:text-brand-700 bg-brand-50 hover:bg-brand-100/70 rounded-xl transition-colors inline-flex items-center gap-1 border border-brand-200/50"
+                                >
+                                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                  </svg>
+                                  Edit
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </section>
+          </>
+        ) : (
+          <>
+            {/* Batches Actions Bar */}
+            <section className="flex items-center justify-between mb-6">
+              <h2 className="font-display font-extrabold text-base text-gray-900">Batches & Challenge Groups</h2>
+              <button
+                onClick={() => setIsBatchModalOpen(true)}
+                className="btn-brand sm:w-auto px-6 py-3 rounded-2xl flex items-center justify-center gap-2 text-sm shadow-brand hover:scale-[1.01]"
+                style={{ minHeight: '46px' }}
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 4v16m8-8H4" />
+                </svg>
+                Create Batch / Class
+              </button>
+            </section>
+
+            {/* Batches Grid */}
+            {batches.length === 0 ? (
+              <div className="bg-white rounded-3xl border border-border shadow-sm p-12 text-center flex flex-col items-center justify-center">
+                <div className="w-16 h-16 rounded-2xl bg-brand-50 flex items-center justify-center text-brand-500 mb-4 border border-brand-100">
+                  <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                  </svg>
+                </div>
+                <h3 className="font-display font-bold text-gray-900 mb-1">No batches found</h3>
+                <p className="text-sm text-gray-500 max-w-xs">Create your first class or batch to start scheduling customer challenges collectively.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {batches.map((batch) => (
+                  <div key={batch._id} className="bg-white rounded-3xl border border-border p-6 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
+                    <div>
+                      <div className="flex items-center justify-between mb-4">
+                        <span className="px-3 py-1 bg-brand-50 text-brand-700 text-[11px] font-black rounded-lg border border-brand-100 uppercase tracking-wide">
+                          Challenge Group
+                        </span>
+                        <span className="text-xs text-muted font-bold">
+                          {batch.customerCount || 0} active members
+                        </span>
+                      </div>
+                      <h3 className="font-display font-bold text-gray-900 text-lg mb-1">{batch.name}</h3>
+                      <div className="flex items-center gap-1.5 text-xs text-muted font-semibold mt-3">
+                        <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        Start Date: {new Date(batch.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                      </div>
+                    </div>
+                    <div className="mt-6 pt-4 border-t border-border flex justify-end">
+                      <button
+                        onClick={() => {
+                          setSelectedBatchFilter(batch._id);
+                          setActiveTab('customers');
+                        }}
+                        className="text-xs font-bold text-brand-600 hover:text-brand-700 transition-colors"
+                      >
+                        View Members &rarr;
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
+        )}
       </main>
 
-      {/* Creation Modal */}
+      {/* Creation/Edit Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          {/* Backdrop */}
           <div
             onClick={() => !formLoading && setIsModalOpen(false)}
             className="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity"
           />
 
-          {/* Modal Content */}
           <div className="bg-white w-full max-w-lg rounded-[2.5rem] border border-border shadow-2xl relative overflow-hidden flex flex-col max-h-[90vh] animate-scale-in">
             {/* Header */}
             <div className="px-6 py-5 border-b border-border bg-gradient-to-r from-brand-50/50 to-transparent flex items-center justify-between shrink-0">
               <div>
-                <h3 className="font-display font-extrabold text-lg text-gray-900">Create New Customer</h3>
-                <p className="text-xs text-muted mt-0.5">Register a customer profile for the 30-day challenge</p>
+                <h3 className="font-display font-extrabold text-lg text-gray-900">
+                  {editingCustomer ? 'Edit Customer' : 'Create New Customer'}
+                </h3>
+                <p className="text-xs text-muted mt-0.5">
+                  {editingCustomer ? 'Update credentials, batch or metrics for the challenge' : 'Register a customer profile for the challenge'}
+                </p>
               </div>
               <button
                 disabled={formLoading}
@@ -418,7 +633,7 @@ export default function Admin() {
             </div>
 
             {/* Form Scroll Body */}
-            <form onSubmit={handleCreateCustomer} className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
+            <form onSubmit={handleSubmitForm} className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
               {formError && (
                 <div className="flex items-center gap-2.5 bg-red-50 border border-red-200 rounded-2xl p-3 text-xs text-red-700">
                   <svg className="w-4 h-4 shrink-0 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -458,16 +673,41 @@ export default function Admin() {
                   </div>
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1 px-1">Password *</label>
+                  <label className="block text-xs font-bold text-gray-700 mb-1 px-1">
+                    {editingCustomer ? 'Password (leave blank to keep unchanged)' : 'Password *'}
+                  </label>
                   <input
                     type="password"
                     name="password"
-                    required
+                    required={!editingCustomer}
                     value={formData.password}
                     onChange={handleInputChange}
-                    placeholder="Enter account password"
+                    placeholder={editingCustomer ? "••••••••" : "Enter account password"}
                     className="w-full rounded-2xl border border-border bg-[#FAFAFA] px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-400/40 focus:border-brand-500 transition-all text-gray-900"
                   />
+                </div>
+              </div>
+
+              <hr className="border-border my-2" />
+
+              {/* Batch Assignment */}
+              <div className="space-y-3">
+                <p className="text-[10px] font-extrabold text-brand-600 uppercase tracking-widest px-1">Batch Assignment</p>
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1 px-1">Class / Batch</label>
+                  <select
+                    name="batchId"
+                    value={formData.batchId}
+                    onChange={handleInputChange}
+                    className="w-full rounded-2xl border border-border bg-[#FAFAFA] px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-400/40 focus:border-brand-500 transition-all text-gray-900"
+                  >
+                    <option value="">No Batch (Individual)</option>
+                    {batches.map((b) => (
+                      <option key={b._id} value={b._id}>
+                        {b.name} (Starts {new Date(b.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })})
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
 
@@ -527,7 +767,7 @@ export default function Admin() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-gray-700 mb-1 px-1">Start Date</label>
+                    <label className="block text-xs font-bold text-gray-700 mb-1 px-1">Start Date (Fallback)</label>
                     <input
                       type="date"
                       name="startDate"
@@ -561,14 +801,261 @@ export default function Admin() {
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                       </svg>
-                      Creating…
+                      {editingCustomer ? 'Saving…' : 'Creating…'}
                     </span>
                   ) : (
-                    'Add Member'
+                    editingCustomer ? 'Save Changes' : 'Add Member'
                   )}
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Create Batch Modal */}
+      {isBatchModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            onClick={() => !batchFormLoading && setIsBatchModalOpen(false)}
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity"
+          />
+
+          <div className="bg-white w-full max-w-md rounded-[2.5rem] border border-border shadow-2xl relative overflow-hidden flex flex-col animate-scale-in">
+            <div className="px-6 py-5 border-b border-border bg-gradient-to-r from-brand-50/50 to-transparent flex items-center justify-between shrink-0">
+              <div>
+                <h3 className="font-display font-extrabold text-lg text-gray-900">Create Batch / Class</h3>
+                <p className="text-xs text-muted mt-0.5">Define a group and its 30-day challenge starting date</p>
+              </div>
+              <button
+                disabled={batchFormLoading}
+                onClick={() => setIsBatchModalOpen(false)}
+                className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200/80 flex items-center justify-center text-gray-500 transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateBatch} className="px-6 py-5 space-y-4">
+              {batchFormError && (
+                <div className="flex items-center gap-2.5 bg-red-50 border border-red-200 rounded-2xl p-3 text-xs text-red-700">
+                  <svg className="w-4 h-4 shrink-0 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                  <span className="font-bold">{batchFormError}</span>
+                </div>
+              )}
+
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1 px-1">Batch / Class Name *</label>
+                <input
+                  type="text"
+                  name="name"
+                  required
+                  value={batchFormData.name}
+                  onChange={handleBatchInputChange}
+                  placeholder="e.g. Batch of July 2026"
+                  className="w-full rounded-2xl border border-border bg-[#FAFAFA] px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-400/40 focus:border-brand-500 transition-all text-gray-900"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1 px-1">Challenge Start Date *</label>
+                <input
+                  type="date"
+                  name="startDate"
+                  required
+                  value={batchFormData.startDate}
+                  onChange={handleBatchInputChange}
+                  className="w-full rounded-2xl border border-border bg-[#FAFAFA] px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-400/40 focus:border-brand-500 transition-all text-gray-900"
+                />
+              </div>
+
+              <div className="flex gap-3 pt-4 shrink-0">
+                <button
+                  type="button"
+                  disabled={batchFormLoading}
+                  onClick={() => setIsBatchModalOpen(false)}
+                  className="flex-1 py-3.5 rounded-2xl font-bold text-sm text-gray-700 bg-gray-100 hover:bg-gray-200/80 active:scale-[0.98] transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={batchFormLoading}
+                  className="flex-1 btn-brand py-3.5 rounded-2xl font-bold text-sm text-white shadow-brand hover:scale-[1.01]"
+                  style={{ minHeight: '48px' }}
+                >
+                  {batchFormLoading ? 'Creating…' : 'Create Batch'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Customer 30-Day Task Log Modal */}
+      {taskViewerCustomer && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            onClick={() => setTaskViewerCustomer(null)}
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity"
+          />
+
+          <div className="bg-white w-full max-w-5xl h-[85vh] rounded-[2.5rem] border border-border shadow-2xl relative overflow-hidden flex flex-col animate-scale-in">
+            {/* Header */}
+            <div className="px-6 py-5 border-b border-border bg-gradient-to-r from-brand-50/50 to-transparent flex items-center justify-between shrink-0">
+              <div>
+                <h3 className="font-display font-extrabold text-lg text-gray-900">
+                  {taskViewerCustomer.name}'s Challenge Progress
+                </h3>
+                <p className="text-xs text-muted mt-0.5">
+                  View and edit daily tasks logs across the 30-day timeline.
+                </p>
+              </div>
+              <button
+                onClick={() => setTaskViewerCustomer(null)}
+                className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200/80 flex items-center justify-center text-gray-500 transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Modal Body: Two-panel layout */}
+            <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
+              
+              {/* Left Panel: 30 Days Grid */}
+              <div className="w-full md:w-3/5 p-6 overflow-y-auto border-b md:border-b-0 md:border-r border-border">
+                <p className="text-xs font-black uppercase text-muted tracking-widest mb-4">30 Days timeline</p>
+                {tasksLoading ? (
+                  <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
+                    {Array.from({ length: 30 }).map((_, idx) => (
+                      <div key={idx} className="h-16 rounded-2xl skeleton" />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
+                    {Array.from({ length: 30 }).map((_, idx) => {
+                      const dayNum = idx + 1;
+                      const dayLogs = customerTasks.filter((l) => l.dayNumber === dayNum);
+                      const completedCount = dayLogs.filter((l) => l.completed).length;
+                      
+                      // Identify completion status
+                      const REQUIRED = ['yoga', 'meditation', 'water', 'protein'];
+                      const isComplete = REQUIRED.every(t => dayLogs.some(l => l.taskId === t && l.completed));
+                      const isPartial = !isComplete && dayLogs.some(l => l.completed);
+
+                      let dayStyle = 'bg-gray-50 text-gray-400 border-gray-200';
+                      if (isComplete) dayStyle = 'bg-emerald-50 text-emerald-800 border-emerald-300';
+                      else if (isPartial) dayStyle = 'bg-amber-50 text-amber-800 border-amber-300';
+
+                      const isSelected = selectedTaskDay === dayNum;
+
+                      return (
+                        <button
+                          key={dayNum}
+                          onClick={() => setSelectedTaskDay(dayNum)}
+                          className={`flex flex-col items-center justify-between p-3 rounded-2xl border-2 transition-all text-center ${dayStyle} ${
+                            isSelected ? 'ring-2 ring-brand-500 scale-95 border-brand-400' : 'hover:scale-[1.02]'
+                          }`}
+                        >
+                          <span className="text-xs font-black">Day {dayNum}</span>
+                          <span className="text-[10px] font-bold mt-1.5 opacity-80">{completedCount}/5 done</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Right Panel: Selected Day details & toggles */}
+              <div className="w-full md:w-2/5 p-6 overflow-y-auto bg-gray-50/50 flex flex-col">
+                <p className="text-xs font-black uppercase text-muted tracking-widest mb-4">Task Details</p>
+
+                {selectedTaskDay ? (
+                  <div className="space-y-5">
+                    <div className="bg-white border border-border p-4 rounded-2xl shadow-sm">
+                      <h4 className="font-display font-extrabold text-gray-900 text-base">Day {selectedTaskDay} Details</h4>
+                      <p className="text-xs text-muted mt-0.5">Update progress values directly. Saves automatically on blur/toggle.</p>
+                    </div>
+
+                    <div className="space-y-3">
+                      {['yoga', 'meditation', 'water', 'protein', 'sleep'].map((taskId) => {
+                        const isRequired = taskId !== 'sleep';
+                        const log = customerTasks.find(l => l.dayNumber === selectedTaskDay && l.taskId === taskId) || { completed: false, amount: 0 };
+                        
+                        const titles = {
+                          yoga: 'Yoga (Minutes)',
+                          meditation: 'Meditation (Minutes)',
+                          water: 'Water (ml)',
+                          protein: 'Protein (g)',
+                          sleep: 'Sleep (hours)'
+                        };
+
+                        const unit = {
+                          yoga: 'min',
+                          meditation: 'min',
+                          water: 'ml',
+                          protein: 'g',
+                          sleep: 'hrs'
+                        }[taskId];
+
+                        return (
+                          <div key={taskId} className="bg-white rounded-2xl border border-border p-4 flex flex-col gap-3 shadow-sm hover:border-brand-200 transition-colors">
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                                {titles[taskId]}
+                                {isRequired && (
+                                  <span className="px-1.5 py-0.5 bg-red-50 text-red-600 text-[9px] font-black uppercase rounded">Required</span>
+                                )}
+                              </span>
+                              <input
+                                type="checkbox"
+                                checked={log.completed}
+                                onChange={(e) => handleUpdateTaskLog(selectedTaskDay, taskId, e.target.checked, log.amount)}
+                                className="w-4 h-4 rounded text-brand-600 focus:ring-brand-500 border-gray-300"
+                              />
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="number"
+                                placeholder={`Amount in ${unit}`}
+                                value={log.amount || ''}
+                                onBlur={(e) => handleUpdateTaskLog(selectedTaskDay, taskId, log.completed, Number(e.target.value))}
+                                onChange={(e) => {
+                                  // Update local state without saving immediately for responsiveness
+                                  const newVal = Number(e.target.value);
+                                  setCustomerTasks((prev) =>
+                                    prev.map((l) => (l.dayNumber === selectedTaskDay && l.taskId === taskId) ? { ...l, amount: newVal } : l)
+                                  );
+                                }}
+                                className="flex-1 rounded-xl border border-border bg-[#FAFAFA] px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-brand-400/40 focus:border-brand-500 transition-all text-gray-900"
+                              />
+                              <span className="text-xs text-muted font-bold w-8">{unit}</span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
+                    <div className="w-12 h-12 rounded-2xl bg-gray-100 flex items-center justify-center text-gray-400 mb-3 border border-border">
+                      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" />
+                      </svg>
+                    </div>
+                    <p className="text-sm font-bold text-gray-800">No day selected</p>
+                    <p className="text-xs text-gray-400 mt-1 max-w-xs">Click on any day in the timeline grid on the left to edit task details.</p>
+                  </div>
+                )}
+              </div>
+
+            </div>
           </div>
         </div>
       )}

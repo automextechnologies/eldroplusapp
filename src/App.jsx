@@ -10,11 +10,15 @@ import Settings from './pages/Settings';
 import Admin from './pages/Admin';
 import db from './db/dexie';
 
-const BASE_URL = import.meta.env.DEV ? '' : 'https://elderoplusbackend.onrender.com';
+const BASE_URL = import.meta.env.DEV
+  ? 'http://localhost:3001'
+  : 'https://elderoplusbackend.onrender.com';
 
 function RequireAuth({ children }) {
   const isAuthenticated = useUserStore((s) => s.isAuthenticated)();
+  const user = useUserStore((s) => s.user);
   if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (user?.role === 'admin') return <Navigate to="/admin" replace />;
   return children;
 }
 
