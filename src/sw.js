@@ -9,7 +9,7 @@ precacheAndRoute(self.__WB_MANIFEST);
 
 // API routes: NetworkFirst
 registerRoute(
-  ({ url }) => url.pathname.startsWith('/api/'),
+  ({ url }) => url.origin === 'https://elderoplusbackend.onrender.com' || url.pathname.startsWith('/api/'),
   new NetworkFirst({
     cacheName: 'api-cache',
     networkTimeoutSeconds: 8,

@@ -10,6 +10,8 @@ import Settings from './pages/Settings';
 import Admin from './pages/Admin';
 import db from './db/dexie';
 
+const BASE_URL = 'https://elderoplusbackend.onrender.com';
+
 function RequireAuth({ children }) {
   const isAuthenticated = useUserStore((s) => s.isAuthenticated)();
   if (!isAuthenticated) return <Navigate to="/login" replace />;
@@ -55,7 +57,8 @@ export default function App() {
     const queue = await db.syncQueue.toArray();
     for (const item of queue) {
       try {
-        await fetch(item.endpoint, {
+        const url = item.endpoint.startsWith('http') ? item.endpoint : `${BASE_URL}${item.endpoint}`;
+        await fetch(url, {
           method: item.method,
           headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
           body: JSON.stringify(item.body),

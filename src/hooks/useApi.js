@@ -1,5 +1,7 @@
 import { useUserStore } from '../store/useUserStore';
 
+const BASE_URL = 'https://elderoplusbackend.onrender.com';
+
 export function useApi() {
   const token = useUserStore((s) => s.token);
 
@@ -10,7 +12,9 @@ export function useApi() {
       ...options.headers,
     };
 
-    const res = await fetch(endpoint, {
+    const url = endpoint.startsWith('http') ? endpoint : `${BASE_URL}${endpoint}`;
+
+    const res = await fetch(url, {
       ...options,
       headers,
       body: options.body ? JSON.stringify(options.body) : undefined,
