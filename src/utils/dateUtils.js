@@ -5,7 +5,7 @@ export function formatDate(d = new Date()) {
 }
 
 export function isDayUnlocked(dayNumber, startDate) {
-  if (dayNumber === 1) return true;
+  if (!startDate) return false;
   const start = parseISO(typeof startDate === 'string' ? startDate : startDate.toISOString().split('T')[0]);
   let unlockDate = addDays(start, dayNumber - 1);
   unlockDate = setHours(setMinutes(unlockDate, 0), 1);

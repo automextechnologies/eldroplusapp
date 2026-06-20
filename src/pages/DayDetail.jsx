@@ -42,9 +42,10 @@ export default function DayDetail() {
 
   if (!user) return null;
 
-  const isFuture = dayNumber > currentDayNumber;
-  const isPast = dayNumber < currentDayNumber;
-  const isToday = dayNumber === currentDayNumber;
+  const isUnlocked = isDayUnlocked(dayNumber, user.startDate);
+  const isFuture = !isUnlocked;
+  const isPast = isUnlocked && dayNumber < currentDayNumber;
+  const isToday = isUnlocked && dayNumber === currentDayNumber;
 
   function isTaskReadonly(taskId) {
     if (isFuture) return true;

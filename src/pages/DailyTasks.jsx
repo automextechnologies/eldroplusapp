@@ -5,7 +5,7 @@ import db from '../db/dexie';
 import { useUserStore } from '../store/useUserStore';
 import { useApi } from '../hooks/useApi';
 import { useNotifications } from '../hooks/useNotifications';
-import { formatDate } from '../utils/dateUtils';
+import { formatDate, isDayUnlocked, getUnlockDate, formatUnlockDate } from '../utils/dateUtils';
 import { TASK_ORDER, TASK_CONFIG } from '../utils/taskConfig';
 import BottomSheet from '../components/shared/BottomSheet';
 import YogaTask from '../components/tasks/YogaTask';
@@ -116,6 +116,7 @@ export default function DailyTasks() {
   const currentDayNumber = useUserStore((s) => s.currentDayNumber)();
   const api = useApi();
   const { cancelTaskReminders } = useNotifications();
+  const isChallengeStarted = user.startDate ? isDayUnlocked(1, user.startDate) : true;
 
   const [activeTask, setActiveTask] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -212,30 +213,49 @@ export default function DailyTasks() {
           </div>
         </div>
  
-        {/* Tasks Grid */}
-        <div className="-mt-6 md:mt-0 bg-surface rounded-t-[2rem] md:rounded-none px-4 md:px-0 pt-6 pb-28 md:pb-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 animate-fade-in">
-          {TASK_ORDER.map((taskId) => (
-            <TaskCard
-              key={taskId}
-              taskId={taskId}
-              log={logMap[taskId]}
-              dayNumber={currentDayNumber}
-              onTap={(tid) => setActiveTask(tid)}
-            />
-          ))}
- 
-          {completedCount === 5 && (
-            <div className="text-center py-6 md:col-span-2 lg:col-span-3 animate-scale-in">
-              <div className="w-16 h-16 bg-green-50 border border-green-100 rounded-2xl mx-auto flex items-center justify-center mb-4 text-green-600 shadow-inner-sm">
+        {/* Tasks Grid or Lock Screen */}
+        {!isChallengeStarted ? (
+          <div className="max-w-md mx-auto px-4 pt-6 pb-28 md:pb-8">
+            <div className="bg-white rounded-3xl border border-border p-8 text-center shadow-card mt-6">
+              <div className="w-16 h-16 bg-gray-50 rounded-2xl mx-auto flex items-center justify-center mb-4 border border-gray-100 shadow-inner-sm text-gray-400">
                 <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
                 </svg>
               </div>
-              <p className="font-display font-bold text-xl text-gray-900">All tasks complete!</p>
-              <p className="text-muted text-sm mt-1">Amazing work today. See you tomorrow!</p>
+              <p className="font-display font-extrabold text-gray-900 text-lg">Challenge has not started yet</p>
+              <p className="text-sm text-gray-500 mt-2">
+                Your challenge starts on:
+              </p>
+              <p className="inline-block mt-3 px-4 py-2 bg-brand-50 border border-brand-100 rounded-2xl text-brand-700 font-bold text-sm font-mono">
+                {formatUnlockDate(getUnlockDate(1, user.startDate))}
+              </p>
             </div>
-          )}
-        </div>
+          </div>
+        ) : (
+          <div className="-mt-6 md:mt-0 bg-surface rounded-t-[2rem] md:rounded-none px-4 md:px-0 pt-6 pb-28 md:pb-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 animate-fade-in">
+            {TASK_ORDER.map((taskId) => (
+              <TaskCard
+                key={taskId}
+                taskId={taskId}
+                log={logMap[taskId]}
+                dayNumber={currentDayNumber}
+                onTap={(tid) => setActiveTask(tid)}
+              />
+            ))}
+
+            {completedCount === 5 && (
+              <div className="text-center py-6 md:col-span-2 lg:col-span-3 animate-scale-in">
+                <div className="w-16 h-16 bg-green-50 border border-green-100 rounded-2xl mx-auto flex items-center justify-center mb-4 text-green-600 shadow-inner-sm">
+                  <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 00.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138z" />
+                  </svg>
+                </div>
+                <p className="font-display font-bold text-xl text-gray-900">All tasks complete!</p>
+                <p className="text-muted text-sm mt-1">Amazing work today. See you tomorrow!</p>
+              </div>
+            )}
+          </div>
+        )}
       </div>
  
       <BottomSheet

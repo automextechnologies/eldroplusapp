@@ -55,6 +55,11 @@ export default defineConfig({
             options: { cacheName: 'google-fonts', expiration: { maxAgeSeconds: 31536000 } }
           }
         ]
+      },
+      devOptions: {
+        enabled: true,
+        type: 'module',
+        navigateFallback: 'index.html'
       }
     })
   ],

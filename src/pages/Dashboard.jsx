@@ -6,7 +6,7 @@ import db from '../db/dexie';
 import { useUserStore } from '../store/useUserStore';
 import { useStreak } from '../hooks/useStreak';
 import { useNotifications } from '../hooks/useNotifications';
-import { formatDate } from '../utils/dateUtils';
+import { formatDate, isDayUnlocked } from '../utils/dateUtils';
 import { TASK_ORDER, TASK_CONFIG } from '../utils/taskConfig';
 import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid
@@ -74,6 +74,7 @@ function TaskRow({ taskId, log }) {
 
 export default function Dashboard() {
   const user = useUserStore((s) => s.user);
+  const isChallengeStarted = user?.startDate ? isDayUnlocked(1, user.startDate) : true;
   const currentDayNumber = useUserStore((s) => s.currentDayNumber)();
   const streak = useStreak(currentDayNumber);
   const { scheduleToday } = useNotifications();
@@ -280,7 +281,11 @@ export default function Dashboard() {
           </div>
           <div className="flex flex-col items-end gap-2.5">
             <div className="bg-white/15 border border-white/20 rounded-2xl px-3 py-1.5 backdrop-blur-sm">
-              <p className="text-white font-display font-bold text-sm">Day {currentDayNumber}<span className="text-white/50 font-medium"> / 30</span></p>
+              {isChallengeStarted ? (
+                <p className="text-white font-display font-bold text-sm">Day {currentDayNumber}<span className="text-white/50 font-medium"> / 30</span></p>
+              ) : (
+                <p className="text-white font-display font-bold text-sm">Not Started</p>
+              )}
             </div>
             
             <button
@@ -305,263 +310,306 @@ export default function Dashboard() {
         </div>
 
         {/* Progress bar */}
-        <div className="relative mt-6">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-white/80 text-xs font-semibold">TODAY'S PROGRESS</p>
-            <p className="text-white font-bold text-xs">{completedToday}/5 tasks</p>
+        {isChallengeStarted ? (
+          <div className="relative mt-6">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-white/80 text-xs font-semibold">TODAY'S PROGRESS</p>
+              <p className="text-white font-bold text-xs">{completedToday}/5 tasks</p>
+            </div>
+            <div className="h-2.5 bg-white/20 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-white rounded-full transition-all duration-700"
+                style={{ width: `${progressPercent}%` }}
+              />
+            </div>
+            <div className="flex mt-2 gap-1.5">
+              {TASK_ORDER.map((taskId) => {
+                const c = TASK_CONFIG[taskId];
+                const done = logMap[taskId]?.completed;
+                return (
+                  <div
+                    key={taskId}
+                    className="flex-1 h-1 rounded-full transition-all duration-500"
+                    style={{ backgroundColor: done ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.2)' }}
+                  />
+                );
+              })}
+            </div>
           </div>
-          <div className="h-2.5 bg-white/20 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-white rounded-full transition-all duration-700"
-              style={{ width: `${progressPercent}%` }}
-            />
+        ) : (
+          <div className="relative mt-6 flex items-center gap-2 text-white/90 bg-white/10 rounded-2xl p-3 border border-white/15">
+            <svg className="w-5 h-5 text-white/85" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span className="text-xs font-bold uppercase tracking-wider">Challenge starts on {user.startDate ? new Date(user.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}</span>
           </div>
-          <div className="flex mt-2 gap-1.5">
-            {TASK_ORDER.map((taskId) => {
-              const c = TASK_CONFIG[taskId];
-              const done = logMap[taskId]?.completed;
-              return (
-                <div
-                  key={taskId}
-                  className="flex-1 h-1 rounded-full transition-all duration-500"
-                  style={{ backgroundColor: done ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.2)' }}
-                />
-              );
-            })}
-          </div>
-        </div>
+        )}
       </div>
 
       {/* ── Content Grid ── */}
-      <div className="-mt-8 md:mt-0 grid grid-cols-1 md:grid-cols-12 gap-6 pb-28 md:pb-8">
-        
-        {/* Left Column (Streak, Cumulative Stats, Journey CTA) */}
-        <div className="md:col-span-7 space-y-6">
-          
-          {/* ── Streak + Stats row ── */}
-          <div className="px-4 md:px-0">
-            <div className="premium-card p-4">
-              <div className="flex items-center gap-4">
-                {/* Streak */}
-                <div className="flex items-center gap-3 flex-1">
-                  <div className={`${streak >= 3 ? 'animate-pulse' : ''} text-[#ea580c]`}>
-                    <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <p className="font-display font-extrabold text-2xl text-gray-900 leading-none">{streak}</p>
-                    <p className="text-xs text-muted font-medium mt-0.5">Day streak</p>
-                  </div>
-                </div>
-                <div className="w-px h-12 bg-border" />
-                {/* Days done */}
-                <div className="flex-1 text-center">
-                  <p className="font-display font-extrabold text-2xl text-gray-900 leading-none">{completedDays}</p>
-                  <p className="text-xs text-muted font-medium mt-0.5">Days done</p>
-                </div>
-                <div className="w-px h-12 bg-border" />
-                {/* Completed today */}
-                <div className="flex-1 text-center">
-                  <p className="font-display font-extrabold text-2xl text-brand-600 leading-none">{completedToday}/5</p>
-                  <p className="text-xs text-muted font-medium mt-0.5">Completed</p>
-                </div>
+      {!isChallengeStarted ? (
+        <div className="-mt-8 md:mt-0 max-w-md mx-auto px-4 pb-28 md:pb-8 w-full">
+          <div className="bg-white rounded-3xl border border-border p-8 text-center shadow-card mt-6">
+            <div className="w-16 h-16 bg-orange-50 border border-orange-100 rounded-2xl mx-auto flex items-center justify-center mb-4 text-orange-600 shadow-inner-sm">
+              <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+            </div>
+            <h2 className="font-display font-extrabold text-gray-900 text-lg">Challenge has not started yet</h2>
+            <p className="text-sm text-gray-500 mt-2">
+              Your 30-day wellness challenge is scheduled to begin on:
+            </p>
+            <p className="inline-block mt-3 px-4 py-2 bg-brand-50 border border-brand-100 rounded-2xl text-brand-700 font-bold text-sm font-mono">
+              {user.startDate ? new Date(user.startDate).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' }) : '—'} at 1:00 AM
+            </p>
+            <div className="mt-6 border-t border-gray-150 pt-5 text-left space-y-3">
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">What to expect:</p>
+              <div className="flex items-start gap-3">
+                <span className="w-5 h-5 rounded-full bg-brand-50 border border-brand-100 text-brand-600 flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">1</span>
+                <p className="text-xs text-gray-600">Daily tasks (Yoga, Meditation, Water, Protein, Sleep) unlock one day at a time.</p>
+              </div>
+              <div className="flex items-start gap-3">
+                <span className="w-5 h-5 rounded-full bg-brand-50 border border-brand-100 text-brand-600 flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">2</span>
+                <p className="text-xs text-gray-600">Day 1 will unlock automatically on the start date at 1:00 AM.</p>
+              </div>
+              <div className="flex items-start gap-3">
+                <span className="w-5 h-5 rounded-full bg-brand-50 border border-brand-100 text-brand-600 flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">3</span>
+                <p className="text-xs text-gray-600">Log all 5 tasks daily to maintain your streak and achieve your goals!</p>
               </div>
             </div>
           </div>
-
-          {/* ── Cumulative stats ── */}
-          <div className="px-4 md:px-0">
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-xs font-bold text-muted uppercase tracking-widest">Total So Far</p>
-            </div>
-            <div className="flex gap-3 overflow-x-auto no-scrollbar pb-1">
-              <StatCard icon={TASK_CONFIG.yoga.icon} label="Yoga" value={totalYoga ? `${totalYoga}m` : null} bg="bg-green-50" textColor="text-green-700" />
-              <StatCard icon={TASK_CONFIG.water.icon} label="Water" value={totalWater ? totalWater >= 1000 ? `${(totalWater/1000).toFixed(1)}L` : `${totalWater}ml` : null} bg="bg-blue-50" textColor="text-blue-700" />
-              <StatCard icon={TASK_CONFIG.protein.icon} label="Protein" value={totalProtein ? `${totalProtein}g` : null} bg="bg-orange-50" textColor="text-orange-700" />
-              <StatCard icon={TASK_CONFIG.sleep.icon} label="Avg sleep" value={avgSleep ? `${avgSleep}h` : null} bg="bg-indigo-50" textColor="text-indigo-700" />
-            </div>
-          </div>
-
         </div>
-
-        {/* Right Column (Today's Tasks) */}
-        <div className="md:col-span-5 space-y-6">
+      ) : (
+        <div className="-mt-8 md:mt-0 grid grid-cols-1 md:grid-cols-12 gap-6 pb-28 md:pb-8">
           
-          {/* ── Today's tasks ── */}
-          <div className="px-4 md:px-0">
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-xs font-bold text-muted uppercase tracking-widest">Today's Tasks</p>
+          {/* Left Column (Streak, Cumulative Stats, Journey CTA) */}
+          <div className="md:col-span-7 space-y-6">
+            
+            {/* ── Streak + Stats row ── */}
+            <div className="px-4 md:px-0">
+              <div className="premium-card p-4">
+                <div className="flex items-center gap-4">
+                  {/* Streak */}
+                  <div className="flex items-center gap-3 flex-1">
+                    <div className={`${streak >= 3 ? 'animate-pulse' : ''} text-[#ea580c]`}>
+                      <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="font-display font-extrabold text-2xl text-gray-900 leading-none">{streak}</p>
+                      <p className="text-xs text-muted font-medium mt-0.5">Day streak</p>
+                    </div>
+                  </div>
+                  <div className="w-px h-12 bg-border" />
+                  {/* Days done */}
+                  <div className="flex-1 text-center">
+                    <p className="font-display font-extrabold text-2xl text-gray-900 leading-none">{completedDays}</p>
+                    <p className="text-xs text-muted font-medium mt-0.5">Days done</p>
+                  </div>
+                  <div className="w-px h-12 bg-border" />
+                  {/* Completed today */}
+                  <div className="flex-1 text-center">
+                    <p className="font-display font-extrabold text-2xl text-brand-600 leading-none">{completedToday}/5</p>
+                    <p className="text-xs text-muted font-medium mt-0.5">Completed</p>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div className="space-y-2.5">
-              {TASK_ORDER.slice(0, 4).map((taskId) => (
-                <TaskRow key={taskId} taskId={taskId} log={logMap[taskId]} />
-              ))}
+
+            {/* ── Cumulative stats ── */}
+            <div className="px-4 md:px-0">
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-xs font-bold text-muted uppercase tracking-widest">Total So Far</p>
+              </div>
+              <div className="flex gap-3 overflow-x-auto no-scrollbar pb-1">
+                <StatCard icon={TASK_CONFIG.yoga.icon} label="Yoga" value={totalYoga ? `${totalYoga}m` : null} bg="bg-green-50" textColor="text-green-700" />
+                <StatCard icon={TASK_CONFIG.water.icon} label="Water" value={totalWater ? totalWater >= 1000 ? `${(totalWater/1000).toFixed(1)}L` : `${totalWater}ml` : null} bg="bg-blue-50" textColor="text-blue-700" />
+                <StatCard icon={TASK_CONFIG.protein.icon} label="Protein" value={totalProtein ? `${totalProtein}g` : null} bg="bg-orange-50" textColor="text-orange-700" />
+                <StatCard icon={TASK_CONFIG.sleep.icon} label="Avg sleep" value={avgSleep ? `${avgSleep}h` : null} bg="bg-indigo-50" textColor="text-indigo-700" />
+              </div>
             </div>
+
+          </div>
+
+          {/* Right Column (Today's Tasks) */}
+          <div className="md:col-span-5 space-y-6">
+            
+            {/* ── Today's tasks ── */}
+            <div className="px-4 md:px-0">
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-xs font-bold text-muted uppercase tracking-widest">Today's Tasks</p>
+              </div>
+              <div className="space-y-2.5">
+                {TASK_ORDER.slice(0, 4).map((taskId) => (
+                  <TaskRow key={taskId} taskId={taskId} log={logMap[taskId]} />
+                ))}
+              </div>
+            </div>
+
+          </div>
+
+          {/* ── Analytics Charts ── */}
+          <div className="col-span-1 md:col-span-12 grid grid-cols-1 md:grid-cols-2 gap-6 px-4 md:px-0">
+            {/* Sleep Chart */}
+            <section className="space-y-3">
+              <div className="flex items-center gap-2">
+                <span className="text-indigo-600">{TASK_CONFIG.sleep.icon}</span>
+                <h2 className="font-display font-bold text-lg text-gray-900">Sleep Duration</h2>
+              </div>
+              <div className="premium-card p-4 h-64">
+                {sleepData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={sleepData} margin={{ top: 10, right: 0, left: -10, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="sleepColor" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.3}/>
+                          <stop offset="95%" stopColor="#4f46e5" stopOpacity={0}/>
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
+                      <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748B' }} dy={10} />
+                      <YAxis tickFormatter={(val) => `${val}h`} axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748B' }} />
+                      <Tooltip content={<CustomTooltip unit="hrs" />} cursor={{ stroke: '#CBD5E1', strokeWidth: 1, strokeDasharray: '4 4' }} />
+                      <Area connectNulls={true} type="monotone" dataKey="hours" stroke="#4f46e5" strokeWidth={3} fillOpacity={1} fill="url(#sleepColor)" dot={{ r: 4, stroke: '#4f46e5', strokeWidth: 2, fill: '#ffffff' }} activeDot={{ r: 6, strokeWidth: 0, fill: '#4f46e5' }} />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="h-full flex items-center justify-center text-sm text-muted">
+                    Not enough sleep data yet.
+                  </div>
+                )}
+              </div>
+            </section>
+
+            {/* Water Chart */}
+            <section className="space-y-3">
+              <div className="flex items-center gap-2">
+                <span className="text-sky-600">{TASK_CONFIG.water.icon}</span>
+                <h2 className="font-display font-bold text-lg text-gray-900">Water Intake</h2>
+              </div>
+              <div className="premium-card p-4 h-64">
+                {waterData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={waterData} margin={{ top: 10, right: 0, left: -10, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="waterColor" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#0284c7" stopOpacity={0.3}/>
+                          <stop offset="95%" stopColor="#0284c7" stopOpacity={0}/>
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
+                      <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748B' }} dy={10} />
+                      <YAxis tickFormatter={(val) => val >= 1000 ? `${(val/1000).toFixed(1)}L` : `${val}ml`} axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748B' }} />
+                      <Tooltip content={<CustomTooltip unit="ml" />} cursor={{ stroke: '#CBD5E1', strokeWidth: 1, strokeDasharray: '4 4' }} />
+                      <Area connectNulls={true} type="monotone" dataKey="ml" stroke="#0284c7" strokeWidth={3} fillOpacity={1} fill="url(#waterColor)" dot={{ r: 4, stroke: '#0284c7', strokeWidth: 2, fill: '#ffffff' }} activeDot={{ r: 6, strokeWidth: 0, fill: '#0284c7' }} />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="h-full flex items-center justify-center text-sm text-muted">
+                    Not enough water data yet.
+                  </div>
+                )}
+              </div>
+            </section>
+
+            {/* Yoga Chart */}
+            <section className="space-y-3">
+              <div className="flex items-center gap-2">
+                <span className="text-green-600">{TASK_CONFIG.yoga.icon}</span>
+                <h2 className="font-display font-bold text-lg text-gray-900">Yoga Duration</h2>
+              </div>
+              <div className="premium-card p-4 h-64">
+                {yogaData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={yogaData} margin={{ top: 10, right: 0, left: -10, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="yogaColor" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#16a34a" stopOpacity={0.3}/>
+                          <stop offset="95%" stopColor="#16a34a" stopOpacity={0}/>
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
+                      <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748B' }} dy={10} />
+                      <YAxis tickFormatter={(val) => `${val}m`} axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748B' }} />
+                      <Tooltip content={<CustomTooltip unit="min" />} cursor={{ stroke: '#CBD5E1', strokeWidth: 1, strokeDasharray: '4 4' }} />
+                      <Area connectNulls={true} type="monotone" dataKey="minutes" stroke="#16a34a" strokeWidth={3} fillOpacity={1} fill="url(#yogaColor)" dot={{ r: 4, stroke: '#16a34a', strokeWidth: 2, fill: '#ffffff' }} activeDot={{ r: 6, strokeWidth: 0, fill: '#16a34a' }} />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="h-full flex items-center justify-center text-sm text-muted">
+                    Not enough yoga data yet.
+                  </div>
+                )}
+              </div>
+            </section>
+
+            {/* Meditation Chart */}
+            <section className="space-y-3">
+              <div className="flex items-center gap-2">
+                <span className="text-purple-600">{TASK_CONFIG.meditation.icon}</span>
+                <h2 className="font-display font-bold text-lg text-gray-900">Meditation Duration</h2>
+              </div>
+              <div className="premium-card p-4 h-64">
+                {meditationData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={meditationData} margin={{ top: 10, right: 0, left: -10, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="meditationColor" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#9333ea" stopOpacity={0.3}/>
+                          <stop offset="95%" stopColor="#9333ea" stopOpacity={0}/>
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
+                      <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748B' }} dy={10} />
+                      <YAxis tickFormatter={(val) => `${val}m`} axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748B' }} />
+                      <Tooltip content={<CustomTooltip unit="min" />} cursor={{ stroke: '#CBD5E1', strokeWidth: 1, strokeDasharray: '4 4' }} />
+                      <Area connectNulls={true} type="monotone" dataKey="minutes" stroke="#9333ea" strokeWidth={3} fillOpacity={1} fill="url(#meditationColor)" dot={{ r: 4, stroke: '#9333ea', strokeWidth: 2, fill: '#ffffff' }} activeDot={{ r: 6, strokeWidth: 0, fill: '#9333ea' }} />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="h-full flex items-center justify-center text-sm text-muted">
+                    Not enough meditation data yet.
+                  </div>
+                )}
+              </div>
+            </section>
+
+            {/* Protein Chart */}
+            <section className="space-y-3 md:col-span-2">
+              <div className="flex items-center gap-2">
+                <span className="text-orange-600">{TASK_CONFIG.protein.icon}</span>
+                <h2 className="font-display font-bold text-lg text-gray-900">Protein Intake</h2>
+              </div>
+              <div className="premium-card p-4 h-64">
+                {proteinData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={proteinData} margin={{ top: 10, right: 0, left: -10, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="proteinColor" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#ea580c" stopOpacity={0.3}/>
+                          <stop offset="95%" stopColor="#ea580c" stopOpacity={0}/>
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
+                      <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748B' }} dy={10} />
+                      <YAxis tickFormatter={(val) => `${val}g`} axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748B' }} />
+                      <Tooltip content={<CustomTooltip unit="g" />} cursor={{ stroke: '#CBD5E1', strokeWidth: 1, strokeDasharray: '4 4' }} />
+                      <Area connectNulls={true} type="monotone" dataKey="grams" stroke="#ea580c" strokeWidth={3} fillOpacity={1} fill="url(#proteinColor)" dot={{ r: 4, stroke: '#ea580c', strokeWidth: 2, fill: '#ffffff' }} activeDot={{ r: 6, strokeWidth: 0, fill: '#ea580c' }} />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="h-full flex items-center justify-center text-sm text-muted">
+                    Not enough protein data yet.
+                  </div>
+                )}
+              </div>
+            </section>
           </div>
 
         </div>
-
-        {/* ── Analytics Charts ── */}
-        <div className="col-span-1 md:col-span-12 grid grid-cols-1 md:grid-cols-2 gap-6 px-4 md:px-0">
-          {/* Sleep Chart */}
-          <section className="space-y-3">
-            <div className="flex items-center gap-2">
-              <span className="text-indigo-600">{TASK_CONFIG.sleep.icon}</span>
-              <h2 className="font-display font-bold text-lg text-gray-900">Sleep Duration</h2>
-            </div>
-            <div className="premium-card p-4 h-64">
-              {sleepData.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={sleepData} margin={{ top: 10, right: 0, left: -10, bottom: 0 }}>
-                    <defs>
-                      <linearGradient id="sleepColor" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.3}/>
-                        <stop offset="95%" stopColor="#4f46e5" stopOpacity={0}/>
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
-                    <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748B' }} dy={10} />
-                    <YAxis tickFormatter={(val) => `${val}h`} axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748B' }} />
-                    <Tooltip content={<CustomTooltip unit="hrs" />} cursor={{ stroke: '#CBD5E1', strokeWidth: 1, strokeDasharray: '4 4' }} />
-                    <Area connectNulls={true} type="monotone" dataKey="hours" stroke="#4f46e5" strokeWidth={3} fillOpacity={1} fill="url(#sleepColor)" dot={{ r: 4, stroke: '#4f46e5', strokeWidth: 2, fill: '#ffffff' }} activeDot={{ r: 6, strokeWidth: 0, fill: '#4f46e5' }} />
-                  </AreaChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="h-full flex items-center justify-center text-sm text-muted">
-                  Not enough sleep data yet.
-                </div>
-              )}
-            </div>
-          </section>
-
-          {/* Water Chart */}
-          <section className="space-y-3">
-            <div className="flex items-center gap-2">
-              <span className="text-sky-600">{TASK_CONFIG.water.icon}</span>
-              <h2 className="font-display font-bold text-lg text-gray-900">Water Intake</h2>
-            </div>
-            <div className="premium-card p-4 h-64">
-              {waterData.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={waterData} margin={{ top: 10, right: 0, left: -10, bottom: 0 }}>
-                    <defs>
-                      <linearGradient id="waterColor" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#0284c7" stopOpacity={0.3}/>
-                        <stop offset="95%" stopColor="#0284c7" stopOpacity={0}/>
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
-                    <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748B' }} dy={10} />
-                    <YAxis tickFormatter={(val) => val >= 1000 ? `${(val/1000).toFixed(1)}L` : `${val}ml`} axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748B' }} />
-                    <Tooltip content={<CustomTooltip unit="ml" />} cursor={{ stroke: '#CBD5E1', strokeWidth: 1, strokeDasharray: '4 4' }} />
-                    <Area connectNulls={true} type="monotone" dataKey="ml" stroke="#0284c7" strokeWidth={3} fillOpacity={1} fill="url(#waterColor)" dot={{ r: 4, stroke: '#0284c7', strokeWidth: 2, fill: '#ffffff' }} activeDot={{ r: 6, strokeWidth: 0, fill: '#0284c7' }} />
-                  </AreaChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="h-full flex items-center justify-center text-sm text-muted">
-                  Not enough water data yet.
-                </div>
-              )}
-            </div>
-          </section>
-
-          {/* Yoga Chart */}
-          <section className="space-y-3">
-            <div className="flex items-center gap-2">
-              <span className="text-green-600">{TASK_CONFIG.yoga.icon}</span>
-              <h2 className="font-display font-bold text-lg text-gray-900">Yoga Duration</h2>
-            </div>
-            <div className="premium-card p-4 h-64">
-              {yogaData.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={yogaData} margin={{ top: 10, right: 0, left: -10, bottom: 0 }}>
-                    <defs>
-                      <linearGradient id="yogaColor" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#16a34a" stopOpacity={0.3}/>
-                        <stop offset="95%" stopColor="#16a34a" stopOpacity={0}/>
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
-                    <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748B' }} dy={10} />
-                    <YAxis tickFormatter={(val) => `${val}m`} axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748B' }} />
-                    <Tooltip content={<CustomTooltip unit="min" />} cursor={{ stroke: '#CBD5E1', strokeWidth: 1, strokeDasharray: '4 4' }} />
-                    <Area connectNulls={true} type="monotone" dataKey="minutes" stroke="#16a34a" strokeWidth={3} fillOpacity={1} fill="url(#yogaColor)" dot={{ r: 4, stroke: '#16a34a', strokeWidth: 2, fill: '#ffffff' }} activeDot={{ r: 6, strokeWidth: 0, fill: '#16a34a' }} />
-                  </AreaChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="h-full flex items-center justify-center text-sm text-muted">
-                  Not enough yoga data yet.
-                </div>
-              )}
-            </div>
-          </section>
-
-          {/* Meditation Chart */}
-          <section className="space-y-3">
-            <div className="flex items-center gap-2">
-              <span className="text-purple-600">{TASK_CONFIG.meditation.icon}</span>
-              <h2 className="font-display font-bold text-lg text-gray-900">Meditation Duration</h2>
-            </div>
-            <div className="premium-card p-4 h-64">
-              {meditationData.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={meditationData} margin={{ top: 10, right: 0, left: -10, bottom: 0 }}>
-                    <defs>
-                      <linearGradient id="meditationColor" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#9333ea" stopOpacity={0.3}/>
-                        <stop offset="95%" stopColor="#9333ea" stopOpacity={0}/>
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
-                    <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748B' }} dy={10} />
-                    <YAxis tickFormatter={(val) => `${val}m`} axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748B' }} />
-                    <Tooltip content={<CustomTooltip unit="min" />} cursor={{ stroke: '#CBD5E1', strokeWidth: 1, strokeDasharray: '4 4' }} />
-                    <Area connectNulls={true} type="monotone" dataKey="minutes" stroke="#9333ea" strokeWidth={3} fillOpacity={1} fill="url(#meditationColor)" dot={{ r: 4, stroke: '#9333ea', strokeWidth: 2, fill: '#ffffff' }} activeDot={{ r: 6, strokeWidth: 0, fill: '#9333ea' }} />
-                  </AreaChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="h-full flex items-center justify-center text-sm text-muted">
-                  Not enough meditation data yet.
-                </div>
-              )}
-            </div>
-          </section>
-
-          {/* Protein Chart */}
-          <section className="space-y-3 md:col-span-2">
-            <div className="flex items-center gap-2">
-              <span className="text-orange-600">{TASK_CONFIG.protein.icon}</span>
-              <h2 className="font-display font-bold text-lg text-gray-900">Protein Intake</h2>
-            </div>
-            <div className="premium-card p-4 h-64">
-              {proteinData.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={proteinData} margin={{ top: 10, right: 0, left: -10, bottom: 0 }}>
-                    <defs>
-                      <linearGradient id="proteinColor" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#ea580c" stopOpacity={0.3}/>
-                        <stop offset="95%" stopColor="#ea580c" stopOpacity={0}/>
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
-                    <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748B' }} dy={10} />
-                    <YAxis tickFormatter={(val) => `${val}g`} axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748B' }} />
-                    <Tooltip content={<CustomTooltip unit="g" />} cursor={{ stroke: '#CBD5E1', strokeWidth: 1, strokeDasharray: '4 4' }} />
-                    <Area connectNulls={true} type="monotone" dataKey="grams" stroke="#ea580c" strokeWidth={3} fillOpacity={1} fill="url(#proteinColor)" dot={{ r: 4, stroke: '#ea580c', strokeWidth: 2, fill: '#ffffff' }} activeDot={{ r: 6, strokeWidth: 0, fill: '#ea580c' }} />
-                  </AreaChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="h-full flex items-center justify-center text-sm text-muted">
-                  Not enough protein data yet.
-                </div>
-              )}
-            </div>
-          </section>
-        </div>
-
-      </div>
+      )}
 
       {/* ── Install Guide Modal ── */}
       {showInstallGuide && (

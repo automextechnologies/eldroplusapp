@@ -123,13 +123,19 @@ export default function ChallengeGrid() {
     return { dayNumber, status, progress };
   });
 
+  const isChallengeStarted = user.startDate ? isDayUnlocked(1, user.startDate) : true;
+
   return (
     <div className="min-h-screen md:p-4">
       <div className="sticky top-0 z-20 premium-glass rounded-none md:rounded-3xl border-t-0 border-x-0 md:border border-border mb-6">
         <div className="max-w-4xl mx-auto px-4 py-4">
           <h1 className="font-display font-extrabold text-xl text-gray-900">Your 30-Day Journey</h1>
           <p className="text-sm text-muted">
-            {completedDays} days completed · {30 - currentDayNumber + 1} days to go
+            {isChallengeStarted ? (
+              `${completedDays} days completed · ${30 - currentDayNumber + 1} days to go`
+            ) : (
+              `Starts on ${new Date(user.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
+            )}
           </p>
         </div>
       </div>

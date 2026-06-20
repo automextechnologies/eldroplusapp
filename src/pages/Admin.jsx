@@ -37,6 +37,7 @@ export default function Admin() {
 
   // Batch Form State
   const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
+  const [editingBatch, setEditingBatch] = useState(null);
   const [batchFormData, setBatchFormData] = useState({
     name: '',
     startDate: new Date().toISOString().split('T')[0],
@@ -84,7 +85,16 @@ export default function Admin() {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormData((prev) => {
+      const next = { ...prev, [name]: value };
+      if (name === 'batchId' && value) {
+        const selectedBatch = batches.find((b) => b._id === value);
+        if (selectedBatch) {
+          next.startDate = new Date(selectedBatch.startDate).toISOString().split('T')[0];
+        }
+      }
+      return next;
+    });
   };
 
   const handleBatchInputChange = (e) => {
@@ -135,6 +145,7 @@ export default function Admin() {
     if (!formData.name.trim()) { setFormError('Name is required'); setFormLoading(false); return; }
     if (!formData.phone.trim()) { setFormError('Phone number is required'); setFormLoading(false); return; }
     if (!editingCustomer && !formData.password.trim()) { setFormError('Password is required'); setFormLoading(false); return; }
+    if (!formData.batchId) { setFormError('Assigning the customer to a batch or class is required'); setFormLoading(false); return; }
 
     try {
       const payload = {
@@ -169,7 +180,7 @@ export default function Admin() {
     }
   };
 
-  const handleCreateBatch = async (e) => {
+  const handleSaveBatch = async (e) => {
     e.preventDefault();
     setBatchFormError('');
     setBatchFormLoading(true);
@@ -179,19 +190,47 @@ export default function Admin() {
       return;
     }
     try {
-      const res = await api.post('/api/admin/batches', batchFormData);
-      setBatches((prev) => [res.batch, ...prev]);
+      if (editingBatch) {
+        const res = await api.put('/api/admin/batches', {
+          id: editingBatch._id,
+          name: batchFormData.name,
+          startDate: batchFormData.startDate,
+        });
+        setBatches((prev) => prev.map((b) => b._id === res.batch._id ? res.batch : b));
+        setSuccessMsg(`Batch "${res.batch.name}" updated successfully!`);
+        fetchCustomers();
+      } else {
+        const res = await api.post('/api/admin/batches', batchFormData);
+        setBatches((prev) => [res.batch, ...prev]);
+        setSuccessMsg(`Batch "${res.batch.name}" created successfully!`);
+      }
       setIsBatchModalOpen(false);
       setBatchFormData({
         name: '',
         startDate: new Date().toISOString().split('T')[0],
       });
-      setSuccessMsg(`Batch "${res.batch.name}" created successfully!`);
+      setEditingBatch(null);
       setTimeout(() => setSuccessMsg(''), 5000);
     } catch (err) {
-      setBatchFormError(err.message || 'Failed to create batch');
+      setBatchFormError(err.message || 'Failed to save batch');
     } finally {
       setBatchFormLoading(false);
+    }
+  };
+
+  const handleDeleteCustomer = async (customer) => {
+    if (!window.confirm(`Are you sure you want to delete customer "${customer.name}"? This will permanently delete their account and all task logs.`)) {
+      return;
+    }
+    try {
+      await api.delete(`/api/admin/customers?id=${customer._id}`);
+      setCustomers((prev) => prev.filter((c) => c._id !== customer._id));
+      setSuccessMsg(`Customer "${customer.name}" deleted successfully.`);
+      setTimeout(() => setSuccessMsg(''), 5000);
+      fetchBatches();
+    } catch (err) {
+      setError(err.message || 'Failed to delete customer');
+      setTimeout(() => setError(''), 5000);
     }
   };
 
@@ -429,7 +468,7 @@ export default function Admin() {
                         <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Batch / Class</th>
                         <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Details</th>
                         <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Body Stats & BMI</th>
-                        <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Joined Date</th>
+                        <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Joined & Start</th>
                         <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Actions</th>
                       </tr>
                     </thead>
@@ -498,12 +537,20 @@ export default function Admin() {
                                 )}
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap">
-                                <p className="text-sm font-semibold text-gray-900">
-                                  {customer.startDate ? new Date(customer.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
-                                </p>
-                                <p className="text-[10px] text-brand-500 font-bold uppercase tracking-wider mt-0.5">
-                                  Challenge Start Date
-                                </p>
+                                <div className="space-y-1 text-xs">
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="text-[10px] font-bold uppercase tracking-wider text-muted w-12">Joined:</span>
+                                    <span className="font-semibold text-gray-900">
+                                      {customer.joinedDate || customer.createdAt ? new Date(customer.joinedDate || customer.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="text-[10px] font-bold uppercase tracking-wider text-brand-500 w-12">Starts:</span>
+                                    <span className="font-semibold text-brand-600">
+                                      {customer.startDate ? new Date(customer.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
+                                    </span>
+                                  </div>
+                                </div>
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap text-right space-x-2">
                                 <button
@@ -524,6 +571,15 @@ export default function Admin() {
                                   </svg>
                                   Edit
                                 </button>
+                                <button
+                                  onClick={() => handleDeleteCustomer(customer)}
+                                  className="px-3 py-1.5 text-xs font-bold text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100/70 rounded-xl transition-colors inline-flex items-center gap-1 border border-red-200/50"
+                                >
+                                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                  </svg>
+                                  Delete
+                                </button>
                               </td>
                             </tr>
                           );
@@ -540,7 +596,14 @@ export default function Admin() {
             <section className="flex items-center justify-between mb-6">
               <h2 className="font-display font-extrabold text-base text-gray-900">Batches & Challenge Groups</h2>
               <button
-                onClick={() => setIsBatchModalOpen(true)}
+                onClick={() => {
+                  setEditingBatch(null);
+                  setBatchFormData({
+                    name: '',
+                    startDate: new Date().toISOString().split('T')[0],
+                  });
+                  setIsBatchModalOpen(true);
+                }}
                 className="btn-brand sm:w-auto px-6 py-3 rounded-2xl flex items-center justify-center gap-2 text-sm shadow-brand hover:scale-[1.01]"
                 style={{ minHeight: '46px' }}
               >
@@ -583,7 +646,23 @@ export default function Admin() {
                         Start Date: {new Date(batch.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                       </div>
                     </div>
-                    <div className="mt-6 pt-4 border-t border-border flex justify-end">
+                    <div className="mt-6 pt-4 border-t border-border flex justify-between items-center">
+                      <button
+                        onClick={() => {
+                          setEditingBatch(batch);
+                          setBatchFormData({
+                            name: batch.name,
+                            startDate: new Date(batch.startDate).toISOString().split('T')[0],
+                          });
+                          setIsBatchModalOpen(true);
+                        }}
+                        className="text-xs font-bold text-gray-500 hover:text-gray-700 transition-colors inline-flex items-center gap-1"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                        Edit
+                      </button>
                       <button
                         onClick={() => {
                           setSelectedBatchFilter(batch._id);
@@ -701,12 +780,18 @@ export default function Admin() {
                     onChange={handleInputChange}
                     className="w-full rounded-2xl border border-border bg-[#FAFAFA] px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-400/40 focus:border-brand-500 transition-all text-gray-900"
                   >
-                    <option value="">No Batch (Individual)</option>
-                    {batches.map((b) => (
-                      <option key={b._id} value={b._id}>
-                        {b.name} (Starts {new Date(b.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })})
-                      </option>
-                    ))}
+                    <option value="" disabled>Select a Batch/Class *</option>
+                    {batches.map((b) => {
+                      const isStarted = new Date(b.startDate) <= new Date();
+                      const currentBatchId = editingCustomer?.batchId?._id || editingCustomer?.batchId || '';
+                      const isCurrentBatch = currentBatchId && (currentBatchId === b._id);
+                      const isOptionDisabled = isStarted && !isCurrentBatch;
+                      return (
+                        <option key={b._id} value={b._id} disabled={isOptionDisabled}>
+                          {b.name} (Starts {new Date(b.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}){isStarted ? ' - Started' : ''}{isOptionDisabled ? ' (Disabled)' : ''}
+                        </option>
+                      );
+                    })}
                   </select>
                 </div>
               </div>
@@ -817,19 +902,31 @@ export default function Admin() {
       {isBatchModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div
-            onClick={() => !batchFormLoading && setIsBatchModalOpen(false)}
+            onClick={() => {
+              if (!batchFormLoading) {
+                setIsBatchModalOpen(false);
+                setEditingBatch(null);
+              }
+            }}
             className="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity"
           />
 
           <div className="bg-white w-full max-w-md rounded-[2.5rem] border border-border shadow-2xl relative overflow-hidden flex flex-col animate-scale-in">
             <div className="px-6 py-5 border-b border-border bg-gradient-to-r from-brand-50/50 to-transparent flex items-center justify-between shrink-0">
               <div>
-                <h3 className="font-display font-extrabold text-lg text-gray-900">Create Batch / Class</h3>
-                <p className="text-xs text-muted mt-0.5">Define a group and its 30-day challenge starting date</p>
+                <h3 className="font-display font-extrabold text-lg text-gray-900">
+                  {editingBatch ? 'Edit Batch / Class' : 'Create Batch / Class'}
+                </h3>
+                <p className="text-xs text-muted mt-0.5">
+                  {editingBatch ? 'Update name and challenge starting date for this group' : 'Define a group and its 30-day challenge starting date'}
+                </p>
               </div>
               <button
                 disabled={batchFormLoading}
-                onClick={() => setIsBatchModalOpen(false)}
+                onClick={() => {
+                  setIsBatchModalOpen(false);
+                  setEditingBatch(null);
+                }}
                 className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200/80 flex items-center justify-center text-gray-500 transition-colors"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -838,7 +935,7 @@ export default function Admin() {
               </button>
             </div>
 
-            <form onSubmit={handleCreateBatch} className="px-6 py-5 space-y-4">
+            <form onSubmit={handleSaveBatch} className="px-6 py-5 space-y-4">
               {batchFormError && (
                 <div className="flex items-center gap-2.5 bg-red-50 border border-red-200 rounded-2xl p-3 text-xs text-red-700">
                   <svg className="w-4 h-4 shrink-0 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -877,7 +974,10 @@ export default function Admin() {
                 <button
                   type="button"
                   disabled={batchFormLoading}
-                  onClick={() => setIsBatchModalOpen(false)}
+                  onClick={() => {
+                    setIsBatchModalOpen(false);
+                    setEditingBatch(null);
+                  }}
                   className="flex-1 py-3.5 rounded-2xl font-bold text-sm text-gray-700 bg-gray-100 hover:bg-gray-200/80 active:scale-[0.98] transition-all"
                 >
                   Cancel
@@ -888,7 +988,7 @@ export default function Admin() {
                   className="flex-1 btn-brand py-3.5 rounded-2xl font-bold text-sm text-white shadow-brand hover:scale-[1.01]"
                   style={{ minHeight: '48px' }}
                 >
-                  {batchFormLoading ? 'Creating…' : 'Create Batch'}
+                  {batchFormLoading ? (editingBatch ? 'Saving…' : 'Creating…') : (editingBatch ? 'Save Changes' : 'Create Batch')}
                 </button>
               </div>
             </form>
