@@ -77,15 +77,9 @@ export default function Dashboard() {
   const isChallengeStarted = user?.startDate ? isDayUnlocked(1, user.startDate) : true;
   const currentDayNumber = useUserStore((s) => s.currentDayNumber)();
   const streak = useStreak(currentDayNumber);
-  const { scheduleToday } = useNotifications();
-
   const [isInstalled, setIsInstalled] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [showInstallGuide, setShowInstallGuide] = useState(false);
-
-  useEffect(() => {
-    scheduleToday();
-  }, []);
 
   useEffect(() => {
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;

@@ -99,26 +99,4 @@ async function replaySyncQueue() {
   }
 }
 
-// Handle incoming Web Push notifications
-self.addEventListener('push', (event) => {
-  let data = {};
-  if (event.data) {
-    try {
-      data = event.data.json();
-    } catch {
-      data = { title: 'Eldro+', body: event.data.text() };
-    }
-  }
 
-  const options = {
-    body: data.body || 'New update from Eldro+',
-    icon: data.icon || '/pwa-192x192.png',
-    badge: data.badge || '/badge-72x72.png',
-    tag: data.tag || 'push-notification',
-    data: data.data || { url: '/' }
-  };
-
-  event.waitUntil(
-    self.registration.showNotification(data.title || 'Eldro+', options)
-  );
-});
