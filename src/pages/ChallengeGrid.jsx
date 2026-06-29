@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { format } from 'date-fns';
 import db from '../db/dexie';
 import { useUserStore } from '../store/useUserStore';
 import { isDayUnlocked, getUnlockDate, formatUnlockDate } from '../utils/dateUtils';
@@ -39,12 +38,12 @@ function DayBox({ dayNumber, status, progress, startDate, currentDayNumber }) {
   }
 
   const statusStyles = {
-    locked:   'bg-[#FAFAFA] text-[#D0D5DD] border border-[#EAECF0]',
-    unlocked: 'bg-white border-2 border-[#E84C1E] text-[#E84C1E] shadow-[0_4px_12px_rgba(232,76,30,0.15)]',
-    today:    'bg-white border-2 border-[#E84C1E] text-[#E84C1E] animate-pulse-ring',
-    partial:  'bg-white border border-[#EAECF0] text-gray-700 shadow-sm',
-    complete: 'text-white border-none',
-    missed:   'bg-[#FFF0F0] border border-[#FFD0D0] text-[#B02C0C]',
+    locked:   'bg-gray-100 text-gray-300 border border-gray-200/50',
+    unlocked: 'bg-white border border-brand-500/20 text-brand-600 shadow-sm',
+    today:    'bg-white border-2 border-brand-500 text-brand-600 animate-pulse-ring shadow-sm',
+    partial:  'bg-white border border-gray-200 text-gray-700 shadow-sm',
+    complete: 'text-white border-none shadow-sm',
+    missed:   'bg-red-50 border border-red-200 text-red-500',
   };
 
   return (
@@ -52,20 +51,20 @@ function DayBox({ dayNumber, status, progress, startDate, currentDayNumber }) {
       <button
         onClick={handleTap}
         className={`aspect-square w-full rounded-xl flex flex-col items-center justify-center relative overflow-hidden transition-all active:scale-95 ${statusStyles[status]}`}
-        style={status === 'complete' ? { background: 'linear-gradient(135deg, #E84C1E 0%, #B02C0C 100%)', boxShadow: '0 4px 12px rgba(232,76,30,0.25)' } : {}}
+        style={status === 'complete' ? { background: 'linear-gradient(135deg, #FF6B40 0%, #E84C1E 100%)' } : {}}
       >
         {status === 'locked' && (
-          <svg className="w-3.5 h-3.5 mb-0.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+          <svg className="w-3.5 h-3.5 mb-0.5 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
           </svg>
         )}
         {status === 'complete' && (
-          <svg className="w-4 h-4 mb-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg className="w-4 h-4 mb-0.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
           </svg>
         )}
         {status === 'missed' && (
-          <svg className="w-3 h-3 mb-0.5 text-[#B02C0C]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3.5}>
+          <svg className="w-3 h-3 mb-0.5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
           </svg>
         )}
@@ -75,16 +74,16 @@ function DayBox({ dayNumber, status, progress, startDate, currentDayNumber }) {
           </div>
         )}
         {status === 'today' && (
-          <span className="text-[8px] font-700 absolute top-1 left-0 right-0 text-center text-[#E84C1E]">
+          <span className="text-[8px] font-bold absolute top-1.5 left-0 right-0 text-center text-brand-600 tracking-wider">
             TODAY
           </span>
         )}
-        <span className={`font-display font-700 text-xs ${status === 'partial' ? 'relative z-10 bg-white px-1 rounded' : ''}`}>
+        <span className={`font-display font-extrabold text-xs ${status === 'partial' ? 'relative z-10 bg-white px-1 rounded' : ''}`}>
           {dayNumber}
         </span>
       </button>
       {toast && (
-        <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-xs rounded-lg px-3 py-1.5 whitespace-nowrap z-50">
+        <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-xs rounded-xl px-3 py-1.5 whitespace-nowrap z-50 border border-gray-800 shadow-xl">
           {toast}
         </div>
       )}
@@ -126,11 +125,11 @@ export default function ChallengeGrid() {
   const isChallengeStarted = user.startDate ? isDayUnlocked(1, user.startDate) : true;
 
   return (
-    <div className="min-h-screen md:p-4">
-      <div className="sticky top-0 z-20 premium-glass rounded-none md:rounded-3xl border-t-0 border-x-0 md:border border-border mb-6">
+    <div className="min-h-screen bg-surface md:p-4 pb-12">
+      <div className="sticky top-0 z-20 bg-white/90 backdrop-blur-md rounded-none md:rounded-3xl border-t-0 border-x-0 md:border border-gray-200 mb-6 shadow-sm">
         <div className="max-w-4xl mx-auto px-4 py-4">
           <h1 className="font-display font-extrabold text-xl text-gray-900">Your 30-Day Journey</h1>
-          <p className="text-sm text-muted">
+          <p className="text-sm text-gray-500 mt-0.5">
             {isChallengeStarted ? (
               `${completedDays} days completed · ${30 - currentDayNumber + 1} days to go`
             ) : (

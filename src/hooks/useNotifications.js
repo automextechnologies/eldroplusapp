@@ -1,15 +1,42 @@
 import { useEffect, useState } from 'react';
 import { useUserStore } from '../store/useUserStore';
+import { useApi } from './useApi';
+import { initializeApp } from 'firebase/app';
+import { getMessaging, getToken } from 'firebase/messaging';
+
+// Initialize Firebase Config
+const firebaseConfig = {
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
+};
+
+let app;
+let messaging;
+
+try {
+  if (firebaseConfig.apiKey) {
+    app = initializeApp(firebaseConfig);
+    messaging = getMessaging(app);
+  }
+} catch (err) {
+  console.error('Failed to initialize Firebase SDK:', err);
+}
 
 export function useNotifications() {
   const [permission, setPermission] = useState(
     typeof Notification !== 'undefined' ? Notification.permission : 'default'
   );
   const token = useUserStore((s) => s.token);
+  const api = useApi();
 
   const isIOS = /iP(ad|hone|od)/.test(navigator.userAgent);
   const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
-  const supported = 'Notification' in window && 'serviceWorker' in navigator;
+  const supported = 'Notification' in window && 'serviceWorker' in navigator && !!messaging;
 
   // Poll for permission status changes (e.g. if the user grants/revokes via site settings)
   useEffect(() => {
@@ -22,71 +49,34 @@ export function useNotifications() {
     return () => clearInterval(interval);
   }, [permission, supported]);
 
+  async function syncToken() {
+    if (!supported || permission !== 'granted' || !token) return;
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      const fcmToken = await getToken(messaging, {
+        vapidKey: import.meta.env.VITE_FIREBASE_VAPID_KEY,
+        serviceWorkerRegistration: reg,
+      });
+      if (fcmToken) {
+        console.log('[FCM] Successfully fetched token:', fcmToken);
+        await api.post('/api/notifications/fcm-subscribe', { token: fcmToken });
+      }
+    } catch (err) {
+      console.warn('[FCM] Token sync failed:', err.message);
+    }
+  }
+
+  // Sync token whenever permission is granted or user token changes
+  useEffect(() => {
+    syncToken();
+  }, [permission, token]);
+
   async function requestPermission() {
     if (!supported) return false;
     const result = await Notification.requestPermission();
     setPermission(result);
     return result === 'granted';
   }
-
-  useEffect(() => {
-    if (permission !== 'granted' || !token) return;
-
-    // 1. 15-second test notification
-    const testInterval = setInterval(async () => {
-      if ('serviceWorker' in navigator) {
-        try {
-          const reg = await navigator.serviceWorker.ready;
-          reg.showNotification('Eldro+ Water Test', {
-            body: 'This is a test notification running every 15 seconds.',
-            icon: '/pwa-192x192.png',
-            badge: '/badge-72x72.png',
-            tag: 'water-test-15s',
-            data: { url: '/' }
-          });
-        } catch (err) {
-          console.error('Failed to send local test notification:', err);
-        }
-      }
-    }, 15000);
-
-    // 2. 2-hour water intake notification checker
-    // Check every 10 seconds if 2 hours have passed since the last water notification
-    const waterInterval = setInterval(async () => {
-      const lastNotif = localStorage.getItem('last_water_notification_time');
-      const now = Date.now();
-      const twoHours = 2 * 60 * 60 * 1000;
-      
-      if (!lastNotif) {
-        // Initialize last notification time to now so it doesn't fire immediately on login
-        localStorage.setItem('last_water_notification_time', now.toString());
-        return;
-      }
-
-      if (now - Number(lastNotif) >= twoHours) {
-        if ('serviceWorker' in navigator) {
-          try {
-            const reg = await navigator.serviceWorker.ready;
-            reg.showNotification('Water Intake Reminder', {
-              body: 'Time to drink water! Keep your hydration target on track.',
-              icon: '/pwa-192x192.png',
-              badge: '/badge-72x72.png',
-              tag: 'water-intake-reminder',
-              data: { url: '/' }
-            });
-            localStorage.setItem('last_water_notification_time', now.toString());
-          } catch (err) {
-            console.error('Failed to send water intake notification:', err);
-          }
-        }
-      }
-    }, 10000);
-
-    return () => {
-      clearInterval(testInterval);
-      clearInterval(waterInterval);
-    };
-  }, [permission, token]);
 
   function cancelTaskReminders(taskId) {
     // No-op (previously cleared scheduled task reminders)

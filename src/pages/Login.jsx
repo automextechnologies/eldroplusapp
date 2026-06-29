@@ -27,15 +27,15 @@ function EyeIcon({ open }) {
   );
 }
 
-function EldroPlusMark() {
+function EldroPlusMark({ color = 'white' }) {
   return (
     <svg viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
-      <path d="M30 6C30 6 18 18 18 28C18 35 24 41 30 41C36 41 42 35 42 28C42 18 30 6 30 6Z" fill="white"/>
-      <path d="M30 39C30 39 13 35 9 22C16 17 27 26 30 39Z" fill="white" opacity="0.8"/>
-      <path d="M30 39C30 39 47 35 51 22C44 17 33 26 30 39Z" fill="white" opacity="0.8"/>
-      <path d="M30 41L30 52" stroke="white" strokeWidth="2.5" strokeLinecap="round" opacity="0.7"/>
-      <path d="M23 50C20 47 20 43 24 42C27 45 27 51 23 50Z" fill="white" opacity="0.6"/>
-      <path d="M37 50C40 47 40 43 36 42C33 45 33 51 37 50Z" fill="white" opacity="0.6"/>
+      <path d="M30 6C30 6 18 18 18 28C18 35 24 41 30 41C36 41 42 35 42 28C42 18 30 6 30 6Z" fill={color}/>
+      <path d="M30 39C30 39 13 35 9 22C16 17 27 26 30 39Z" fill={color} opacity="0.8"/>
+      <path d="M30 39C30 39 47 35 51 22C44 17 33 26 30 39Z" fill={color} opacity="0.8"/>
+      <path d="M30 41L30 52" stroke={color} strokeWidth="2.5" strokeLinecap="round" opacity="0.7"/>
+      <path d="M23 50C20 47 20 43 24 42C27 45 27 51 23 50Z" fill={color} opacity="0.6"/>
+      <path d="M37 50C40 47 40 43 36 42C33 45 33 51 37 50Z" fill={color} opacity="0.6"/>
     </svg>
   );
 }
@@ -44,7 +44,7 @@ function BrandPanel() {
   const features = [
     {
       icon: (
-        <svg className="w-4 h-4 text-white/90" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+        <svg className="w-4 h-4 text-brand-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
         </svg>
       ),
@@ -52,7 +52,7 @@ function BrandPanel() {
     },
     {
       icon: (
-        <svg className="w-4 h-4 text-white/90" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+        <svg className="w-4 h-4 text-brand-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
         </svg>
       ),
@@ -60,8 +60,8 @@ function BrandPanel() {
     },
     {
       icon: (
-        <svg className="w-4 h-4 text-white/90" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+        <svg className="w-4 h-4 text-brand-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
         </svg>
       ),
       label: 'Track Your Progress'
@@ -69,28 +69,27 @@ function BrandPanel() {
   ];
   return (
     <div className="relative h-full flex flex-col items-center justify-center px-10 py-12 overflow-hidden select-none">
-      <div className="absolute -top-24 -right-24 w-80 h-80 rounded-full bg-white/5 pointer-events-none" />
-      <div className="absolute -bottom-16 -left-16 w-60 h-60 rounded-full bg-black/10 blur-sm pointer-events-none" />
-      <div className="absolute top-1/3 -right-8 w-36 h-36 rounded-full bg-white/5 pointer-events-none" />
+      <div className="absolute -top-24 -right-24 w-80 h-80 rounded-full bg-white/10 pointer-events-none" />
+      <div className="absolute -bottom-16 -left-16 w-60 h-60 rounded-full bg-black/5 blur-sm pointer-events-none" />
+      <div className="absolute top-1/3 -right-8 w-36 h-36 rounded-full bg-white/10 pointer-events-none" />
       <div className="relative w-28 h-28 rounded-[28px] flex items-center justify-center p-5 mb-7"
-        style={{ background:'rgba(255,255,255,0.15)', border:'1px solid rgba(255,255,255,0.25)', boxShadow:'0 8px 32px rgba(0,0,0,0.18)', backdropFilter:'blur(8px)' }}>
-        <EldroPlusMark />
+        style={{ background:'rgba(232,76,30,0.06)', border:'1px solid rgba(232,76,30,0.15)', boxShadow:'0 8px 32px rgba(232,76,30,0.06)', backdropFilter:'blur(8px)' }}>
+        <EldroPlusMark color="#E84C1E" />
       </div>
-      <h1 className="font-display font-black text-5xl text-white tracking-tight leading-none">
-        Eldro<span style={{ color: '#FFB394' }}>+</span>
+      <h1 className="font-display font-black text-5xl text-brand-950 tracking-tight leading-none">
+        Eldro<span className="text-brand-600">+</span>
       </h1>
-      <p className="text-[11px] font-semibold tracking-[0.24em] mt-3 mb-10 uppercase"
-         style={{ color: 'rgba(255,255,255,0.50)' }}>
+      <p className="text-[11px] font-semibold tracking-[0.24em] mt-3 mb-10 uppercase text-brand-600/60">
         Live Healthy · Better Tomorrow
       </p>
       <div className="w-full space-y-3 max-w-[220px]">
         {features.map(({ icon, label }) => (
           <div key={label} className="flex items-center gap-3 rounded-2xl px-4 py-3"
-            style={{ background:'rgba(255,255,255,0.12)', border:'1px solid rgba(255,255,255,0.18)' }}>
-            <div className="w-6 h-6 rounded-lg bg-white/10 flex items-center justify-center shrink-0">
+            style={{ background:'rgba(232,76,30,0.04)', border:'1px solid rgba(232,76,30,0.08)' }}>
+            <div className="w-6 h-6 rounded-lg bg-brand-500/10 flex items-center justify-center shrink-0">
               {icon}
             </div>
-            <span className="text-white/85 text-xs font-medium leading-snug">{label}</span>
+            <span className="text-brand-900 text-xs font-semibold leading-snug">{label}</span>
           </div>
         ))}
       </div>
@@ -98,16 +97,16 @@ function BrandPanel() {
   );
 }
 
-const inputBase = { background: '#FAFAFA', border: '1.5px solid #EAECF0', fontSize: '15px' };
+const inputBase = { background: '#ffffff', border: '1.5px solid #E5E7EB', fontSize: '15px', color: '#1F2937' };
 function applyFocus(e) {
   e.target.style.borderColor = '#E84C1E';
-  e.target.style.boxShadow = '0 0 0 4px rgba(232,76,30,0.10)';
-  e.target.style.background = '#FFFFFF';
+  e.target.style.boxShadow = '0 0 0 4px rgba(232,76,30,0.1)';
+  e.target.style.background = '#ffffff';
 }
 function applyBlur(e) {
-  e.target.style.borderColor = '#EAECF0';
+  e.target.style.borderColor = '#E5E7EB';
   e.target.style.boxShadow = 'none';
-  e.target.style.background = '#FAFAFA';
+  e.target.style.background = '#ffffff';
 }
 
 export default function Login() {
@@ -140,7 +139,7 @@ export default function Login() {
 
   const errorBanner = error && (
     <div className="flex items-center gap-2 rounded-xl md:rounded-2xl px-3 md:px-4 py-2 md:py-3 mb-3 md:mb-4 text-xs md:text-sm text-red-600"
-         style={{ background: '#FFF0F0', border: '1px solid #FFD0D0' }}>
+         style={{ background: 'rgba(239, 68, 68, 0.08)', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
       <svg className="w-3.5 h-3.5 md:w-4 md:h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
       </svg>
@@ -152,7 +151,7 @@ export default function Login() {
     <form onSubmit={handleLogin} className="space-y-3 md:space-y-4">
       {/* Phone Number Input */}
       <div className="relative">
-        <span className="absolute left-3.5 md:left-4 top-1/2 -translate-y-1/2" style={{ color: '#B8C0CC' }}>
+        <span className="absolute left-3.5 md:left-4 top-1/2 -translate-y-1/2" style={{ color: '#9CA3AF' }}>
           <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/>
           </svg>
@@ -163,7 +162,7 @@ export default function Login() {
           onChange={(e) => { setIdentifier(e.target.value); setError(''); }}
           placeholder="Phone Number"
           autoComplete="tel"
-          className="w-full rounded-xl md:rounded-2xl px-4 py-3 md:py-4 pl-10 md:pl-12 text-gray-900 transition-all duration-200 focus:outline-none"
+          className="w-full rounded-xl md:rounded-2xl px-4 py-3 md:py-4 pl-10 md:pl-12 text-gray-900 placeholder-gray-400 transition-all duration-200 focus:outline-none"
           style={inputBase}
           onFocus={applyFocus}
           onBlur={applyBlur}
@@ -172,7 +171,7 @@ export default function Login() {
 
       {/* Password Input */}
       <div className="relative">
-        <span className="absolute left-3.5 md:left-4 top-1/2 -translate-y-1/2" style={{ color: '#B8C0CC' }}>
+        <span className="absolute left-3.5 md:left-4 top-1/2 -translate-y-1/2" style={{ color: '#9CA3AF' }}>
           <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
           </svg>
@@ -183,20 +182,20 @@ export default function Login() {
           onChange={(e) => { setPassword(e.target.value); setError(''); }}
           placeholder="Password"
           autoComplete="current-password"
-          className="w-full rounded-xl md:rounded-2xl px-4 py-3 md:py-4 pl-10 md:pl-12 pr-11 text-gray-900 transition-all duration-200 focus:outline-none"
+          className="w-full rounded-xl md:rounded-2xl px-4 py-3 md:py-4 pl-10 md:pl-12 pr-11 text-gray-900 placeholder-gray-400 transition-all duration-200 focus:outline-none"
           style={inputBase}
           onFocus={applyFocus}
           onBlur={applyBlur}
         />
         <button type="button" onClick={() => setShowPwd((v) => !v)}
-          className="absolute right-3.5 md:right-4 top-1/2 -translate-y-1/2" style={{ color: '#B8C0CC' }}>
+          className="absolute right-3.5 md:right-4 top-1/2 -translate-y-1/2" style={{ color: '#9CA3AF' }}>
           <EyeIcon open={showPwd} />
         </button>
       </div>
 
       {/* Forgot */}
       <div className="text-right" style={{ marginTop: '-4px' }}>
-        <button type="button" className="text-xs md:text-sm font-semibold" style={{ color: '#E84C1E' }}>
+        <button type="button" className="text-xs md:text-sm font-semibold text-brand-500 hover:text-brand-600">
           Forgot password?
         </button>
       </div>
@@ -204,7 +203,7 @@ export default function Login() {
       {/* Submit */}
       <button type="submit" disabled={loading}
         className="w-full py-3 md:py-4 rounded-xl md:rounded-2xl font-display font-bold text-white text-sm md:text-[15px] active:scale-[0.97] transition-all duration-150 disabled:opacity-60 disabled:cursor-not-allowed"
-        style={{ background:'linear-gradient(135deg, #E84C1E 0%, #C83A0E 100%)', boxShadow:'0 4px 18px rgba(232,76,30,0.38)' }}>
+        style={{ background:'linear-gradient(135deg, #FF6B40 0%, #E84C1E 100%)', boxShadow:'0 4px 18px rgba(232,76,30,0.2)' }}>
         {loading ? (
           <span className="flex items-center justify-center gap-2">
             <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
@@ -229,47 +228,48 @@ export default function Login() {
     <>
       {/* MOBILE */}
       <div
-        className="md:hidden h-[100dvh] flex flex-col overflow-hidden"
-        style={{ background: 'linear-gradient(160deg, #7A1E04 0%, #C83A0E 55%, #E84C1E 100%)' }}
+        className="md:hidden h-[100dvh] flex flex-col overflow-hidden bg-surface"
       >
-        <div className="flex flex-col items-center text-center px-5 pt-12 pb-5 shrink-0">
+        <div 
+          className="flex flex-col items-center text-center px-5 pt-12 pb-7 shrink-0 border-b border-brand-500/10"
+          style={{ background: 'linear-gradient(160deg, #FFF0EB 0%, #FFE0D6 100%)' }}
+        >
           <div className="absolute top-0 right-0 w-48 h-48 rounded-full bg-white/5 pointer-events-none -z-0" />
           <div className="relative w-12 h-12 rounded-[15px] flex items-center justify-center p-2.5 mb-3"
-            style={{ background:'rgba(255,255,255,0.15)', border:'1px solid rgba(255,255,255,0.25)', backdropFilter:'blur(8px)', boxShadow:'0 4px 16px rgba(0,0,0,0.15)' }}>
-            <EldroPlusMark />
+            style={{ background:'rgba(232,76,30,0.06)', border:'1px solid rgba(232,76,30,0.15)', backdropFilter:'blur(8px)', boxShadow:'0 4px 16px rgba(232,76,30,0.06)' }}>
+            <EldroPlusMark color="#E84C1E" />
           </div>
-          <h1 className="font-display font-black text-[1.85rem] text-white tracking-tight leading-none">
-            Eldro<span style={{ color: '#FFB394' }}>+</span>
+          <h1 className="font-display font-black text-[1.85rem] text-brand-950 tracking-tight leading-none">
+            Eldro<span className="text-brand-600">+</span>
           </h1>
-          <p className="text-[10px] font-semibold tracking-[0.22em] mt-1.5 uppercase"
-             style={{ color: 'rgba(255,255,255,0.55)' }}>
+          <p className="text-[10px] font-semibold tracking-[0.22em] mt-1.5 uppercase text-brand-600/60">
             Live Healthy · Better Tomorrow
           </p>
         </div>
-        <div className="flex-1 min-h-0 bg-white rounded-t-[1.75rem] overflow-y-auto px-5 pt-5 pb-5">
+        <div className="flex-1 min-h-0 bg-[#F8F9FA] border-t border-gray-200 rounded-t-[1.75rem] overflow-y-auto px-5 pt-6 pb-5">
           <h2 className="font-display font-extrabold text-xl text-gray-900 mb-0.5">Welcome back</h2>
-          <p className="text-xs mb-3" style={{ color: '#98A2B3' }}>Sign in to continue your journey</p>
+          <p className="text-xs mb-4 text-gray-500">Sign in to continue your journey</p>
           {errorBanner}
           {formBody}
         </div>
       </div>
 
       {/* DESKTOP / TABLET */}
-      <div className="hidden md:flex min-h-[100dvh] items-center justify-center p-8"
-           style={{ background: 'linear-gradient(135deg, #7A1E04 0%, #C83A0E 55%, #E84C1E 100%)' }}>
+      <div className="hidden md:flex min-h-[100dvh] items-center justify-center p-8 bg-surface"
+           style={{ background: 'linear-gradient(135deg, #F8F9FA 0%, #FFEBE5 50%, #FFF5F2 100%)' }}>
         <div className="w-full"
-          style={{ maxWidth:'960px', background:'white', borderRadius:'2.8rem', padding:'14px',
-                   boxShadow:'0 32px 80px rgba(0,0,0,0.14), 0 8px 24px rgba(0,0,0,0.07)' }}>
+          style={{ maxWidth:'960px', background:'#ffffff', borderRadius:'2.8rem', padding:'14px',
+                   border: '1px solid #E5E7EB', boxShadow:'0 32px 80px rgba(0,0,0,0.03)' }}>
           <div className="flex overflow-hidden"
-            style={{ borderRadius:'2.1rem', background:'linear-gradient(155deg, #7A1E04 0%, #B82E0A 45%, #E84C1E 100%)', minHeight:'600px' }}>
+            style={{ borderRadius:'2.1rem', background:'linear-gradient(155deg, #FFF0EB 0%, #FFE0D6 100%)', border: '1px solid #FFE0D6', minHeight:'600px' }}>
             <div className="w-[44%] shrink-0"><BrandPanel /></div>
             <div className="flex-1 flex items-stretch py-4 pr-4">
-              <div className="bg-white w-full flex flex-col justify-center px-9 py-8 overflow-y-auto"
-                style={{ borderRadius:'1.6rem', boxShadow:'0 4px 30px rgba(0,0,0,0.10)' }}>
+              <div className="bg-[#ffffff] border border-gray-200 w-full flex flex-col justify-center px-9 py-8 overflow-y-auto"
+                style={{ borderRadius:'1.6rem' }}>
                 <h2 className="font-display font-extrabold text-[1.65rem] text-gray-900 mb-0.5">
                   Welcome back
                 </h2>
-                <p className="text-sm mb-6" style={{ color: '#98A2B3' }}>
+                <p className="text-sm mb-6 text-gray-500">
                   Sign in to continue your journey
                 </p>
                 {errorBanner}

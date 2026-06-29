@@ -98,5 +98,32 @@ async function replaySyncQueue() {
     client.postMessage({ type: 'REPLAY_SYNC_QUEUE' });
   }
 }
+// Import Firebase scripts from CDN
+importScripts('https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/9.22.0/firebase-messaging-compat.js');
 
+firebase.initializeApp({
+  apiKey: "AIzaSyC--w_4Zx7ozuhhrHn9TuLQ6QjU6peGHPg",
+  authDomain: "eldroplus.firebaseapp.com",
+  projectId: "eldroplus",
+  storageBucket: "eldroplus.firebasestorage.app",
+  messagingSenderId: "1011847414777",
+  appId: "1:1011847414777:web:2aefd0b666abab48b7f328"
+});
 
+const messaging = firebase.messaging();
+
+messaging.onBackgroundMessage((payload) => {
+  console.log('[sw.js] Received background message ', payload);
+  
+  const notificationTitle = payload.notification?.title || 'Water Intake Reminder';
+  const notificationOptions = {
+    body: payload.notification?.body || 'Time to drink water! Keep your hydration target on track.',
+    icon: payload.notification?.icon || '/pwa-192x192.png',
+    badge: '/badge-72x72.png',
+    tag: 'water-intake-reminder',
+    data: payload.data || { url: '/' }
+  };
+
+  self.registration.showNotification(notificationTitle, notificationOptions);
+});

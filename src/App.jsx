@@ -4,6 +4,7 @@ import { useUserStore } from './store/useUserStore';
 import AppShell from './components/layout/AppShell';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
+import DailyTasks from './pages/DailyTasks';
 import ChallengeGrid from './pages/ChallengeGrid';
 import DayDetail from './pages/DayDetail';
 import Settings from './pages/Settings';
@@ -83,6 +84,7 @@ export default function App() {
       {/* App */}
       <Route element={<RequireAuth><AppShell /></RequireAuth>}>
         <Route index         element={<Dashboard />} />
+        <Route path="tasks"          element={<DailyTasks />} />
         <Route path="challenge"      element={<ChallengeGrid />} />
         <Route path="day/:dayNumber" element={<DayDetail />} />
         <Route path="settings"       element={<Settings />} />
