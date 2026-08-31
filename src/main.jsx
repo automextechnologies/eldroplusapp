@@ -6,7 +6,11 @@ import './index.css';
 import { registerSW } from 'virtual:pwa-register';
 
 if ('serviceWorker' in navigator) {
-  registerSW({ immediate: true });
+  try {
+    registerSW({ immediate: true });
+  } catch (err) {
+    console.warn('[SW Register] Failed:', err);
+  }
 }
 
 ReactDOM.createRoot(document.getElementById('root')).render(

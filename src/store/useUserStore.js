@@ -23,6 +23,7 @@ export const useUserStore = create(
         const { user } = get();
         if (!user?.startDate) return 1;
         const start = new Date(user.startDate);
+        if (isNaN(start.getTime())) return 1;
         start.setHours(0, 0, 0, 0);
         const now = new Date();
         now.setHours(0, 0, 0, 0);

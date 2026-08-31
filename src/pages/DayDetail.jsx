@@ -24,6 +24,34 @@ const TASK_COMPONENTS = {
   sleep: SleepTask,
 };
 
+const PRE_RECORDED_VIDEOS = [
+  {
+    title: "15 Min Daily Stretch & Mobility Routine",
+    youtubeId: "d83Vz1Lz44s",
+    description: "Start your day with this simple routine to enhance mobility and flexibility."
+  },
+  {
+    title: "10 Min Energizing Morning Yoga",
+    youtubeId: "4PkcfVjG7Kk",
+    description: "Boost your energy and focus with gentle movements and breathwork."
+  },
+  {
+    title: "10 Min Mindfulness Breathing Meditation",
+    youtubeId: "ZToicYcHIOU",
+    description: "Centering meditation to reduce anxiety, stress, and bring mental clarity."
+  },
+  {
+    title: "15 Min Low Impact Full Body Strength",
+    youtubeId: "gC_L9_DMct8",
+    description: "Build stamina and strength with low impact, joints-friendly exercises."
+  },
+  {
+    title: "12 Min Deep Sleep & Relaxation Yoga",
+    youtubeId: "O-6f5wQXSu8",
+    description: "Unwind after a busy day to prepare your mind and body for restful sleep."
+  }
+];
+
 export default function DayDetail() {
   const { dayNumber: dayParam } = useParams();
   const dayNumber = parseInt(dayParam, 10);
@@ -42,7 +70,8 @@ export default function DayDetail() {
 
   if (!user) return null;
 
-  const isUnlocked = isDayUnlocked(dayNumber, user.startDate);
+  const isChallengeStarted = user.batchId ? (user.startDate ? isDayUnlocked(1, user.startDate) : false) : !!user.challengeStarted;
+  const isUnlocked = isChallengeStarted && isDayUnlocked(dayNumber, user.startDate);
   const isFuture = !isUnlocked;
   const isPast = isUnlocked && dayNumber < currentDayNumber;
   const isToday = isUnlocked && dayNumber === currentDayNumber;
@@ -152,7 +181,7 @@ export default function DayDetail() {
         {!isFuture && (
           <div 
             className="rounded-3xl p-6 text-brand-950 relative overflow-hidden shadow-sm mb-2 border border-brand-500/10"
-            style={{ background: 'linear-gradient(135deg, #FFF0EB 0%, #FFE0D6 100%)' }}
+            style={{ background: 'linear-gradient(135deg, #F2F8F4 0%, #b4d8c0 100%)' }}
           >
             <div className="absolute -top-12 -right-12 w-48 h-48 rounded-full bg-white/10 blur-md pointer-events-none" />
             <div className="absolute -bottom-8 -left-8 w-24 h-24 rounded-full bg-black/5 blur-xl pointer-events-none" />
@@ -164,7 +193,7 @@ export default function DayDetail() {
               </div>
               <div className="w-14 h-14 rounded-2xl bg-brand-500/10 flex items-center justify-center font-bold shadow-inner-sm text-brand-950">
                 {completedCount === 5 ? (
-                  <svg className="w-8 h-8 text-brand-600 shadow-[0_0_8px_rgba(232,76,30,0.1)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <svg className="w-8 h-8 text-brand-600 shadow-[0_0_8px_rgba(132,180,156,0.2)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138z" />
                   </svg>
                 ) : (
@@ -182,7 +211,7 @@ export default function DayDetail() {
               </div>
               <div className="h-2.5 bg-brand-500/15 rounded-full overflow-hidden">
                 <div 
-                  className="h-full bg-gradient-to-r from-brand-500 to-brand-600 rounded-full transition-all duration-500 shadow-[0_0_8px_rgba(232,76,30,0.15)]"
+                  className="h-full bg-gradient-to-r from-brand-500 to-brand-600 rounded-full transition-all duration-500 shadow-[0_0_8px_rgba(132,180,156,0.35)]"
                   style={{ width: `${progressPercent}%` }}
                 />
               </div>
@@ -193,8 +222,42 @@ export default function DayDetail() {
           </div>
         )}
 
+        {/* Challenge not started yet */}
+        {!isChallengeStarted && (
+          <div className="bg-white rounded-3xl border border-gray-200 p-8 text-center shadow-sm mt-6">
+            <div className="w-16 h-16 bg-gray-50 rounded-2xl mx-auto flex items-center justify-center mb-4 border border-gray-200 shadow-inner-sm text-gray-400">
+              <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+            </div>
+            <p className="font-display font-extrabold text-gray-900 text-lg">Challenge has not started yet</p>
+            {user.startDate ? (
+              <>
+                <p className="text-sm text-gray-500 mt-2">
+                  This day unlocks after the challenge starts on:
+                </p>
+                <p className="inline-block mt-3 px-4 py-2 bg-brand-50 border border-brand-100 rounded-2xl text-brand-500 font-bold text-sm font-mono">
+                  {new Date(user.startDate).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' })}
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="text-sm text-gray-500 mt-2">
+                  Please go to Profile (Settings) page to start your challenge.
+                </p>
+                <button
+                  onClick={() => navigate('/settings')}
+                  className="mt-4 btn-brand px-6 py-2.5 rounded-xl font-bold text-xs shadow-brand"
+                >
+                  Go to Profile (Settings)
+                </button>
+              </>
+            )}
+          </div>
+        )}
+
         {/* Future day locked card */}
-        {isFuture && (
+        {isChallengeStarted && isFuture && (
           <div className="bg-white rounded-3xl border border-gray-200 p-8 text-center shadow-sm mt-6">
             <div className="w-16 h-16 bg-gray-50 rounded-2xl mx-auto flex items-center justify-center mb-4 border border-gray-200 shadow-inner-sm text-gray-400">
               <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.2}>
@@ -214,6 +277,39 @@ export default function DayDetail() {
         {/* List of Tasks */}
         {!isFuture && logs && (
           <div className="space-y-6">
+            {!user.batchId && (
+              <div className="bg-white rounded-3xl border border-gray-200 overflow-hidden shadow-sm space-y-4">
+                <div className="px-6 pt-5 flex justify-between items-center">
+                  <div>
+                    <span className="px-2 py-0.5 bg-brand-50 text-brand-700 text-[10px] font-bold rounded-lg border border-brand-100 uppercase tracking-wide">
+                      Daily Class Video 📹
+                    </span>
+                    <h3 className="font-display font-extrabold text-sm text-gray-900 mt-1.5">
+                      {PRE_RECORDED_VIDEOS[(dayNumber - 1) % 5].title}
+                    </h3>
+                  </div>
+                  <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider bg-gray-50 border border-gray-100 px-2 py-1 rounded">
+                    Day {dayNumber} Video
+                  </span>
+                </div>
+                
+                <div className="aspect-video w-full bg-black relative">
+                  <iframe
+                    className="w-full h-full"
+                    src={`https://www.youtube.com/embed/${PRE_RECORDED_VIDEOS[(dayNumber - 1) % 5].youtubeId}?rel=0&modestbranding=1`}
+                    title={PRE_RECORDED_VIDEOS[(dayNumber - 1) % 5].title}
+                    frameBorder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowFullScreen
+                  />
+                </div>
+                
+                <p className="text-xs text-gray-500 px-6 pb-5 leading-relaxed">
+                  {PRE_RECORDED_VIDEOS[(dayNumber - 1) % 5].description}
+                </p>
+              </div>
+            )}
+
             {/* Editable Tasks Section */}
             {editableTasks.length > 0 && (
               <div className="space-y-3">

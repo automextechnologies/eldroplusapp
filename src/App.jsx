@@ -9,7 +9,9 @@ import ChallengeGrid from './pages/ChallengeGrid';
 import DayDetail from './pages/DayDetail';
 import Settings from './pages/Settings';
 import Admin from './pages/Admin';
+import CustomerDetail from './pages/CustomerDetail';
 import db from './db/dexie';
+import ErrorBoundary from './components/shared/ErrorBoundary';
 
 const BASE_URL = import.meta.env.DEV
   ? 'http://localhost:3001'
@@ -25,7 +27,11 @@ function RequireAuth({ children }) {
 
 function RequireGuest({ children }) {
   const isAuthenticated = useUserStore((s) => s.isAuthenticated)();
-  if (isAuthenticated) return <Navigate to="/" replace />;
+  const user = useUserStore((s) => s.user);
+  if (isAuthenticated) {
+    if (user?.role === 'admin') return <Navigate to="/admin/dashboard" replace />;
+    return <Navigate to="/" replace />;
+  }
   return children;
 }
 
@@ -74,23 +80,27 @@ export default function App() {
   }
 
   return (
-    <Routes>
-      {/* Auth */}
-      <Route path="/login"  element={<RequireGuest><Login /></RequireGuest>} />
+    <ErrorBoundary>
+      <Routes>
+        {/* Auth */}
+        <Route path="/login"  element={<RequireGuest><Login /></RequireGuest>} />
 
-      {/* Admin */}
-      <Route path="/admin"  element={<RequireAdmin><Admin /></RequireAdmin>} />
+        {/* Admin */}
+        <Route path="/admin"  element={<Navigate to="/admin/dashboard" replace />} />
+        <Route path="/admin/:tab" element={<RequireAdmin><Admin /></RequireAdmin>} />
+        <Route path="/admin/customer/:customerId" element={<RequireAdmin><CustomerDetail /></RequireAdmin>} />
 
-      {/* App */}
-      <Route element={<RequireAuth><AppShell /></RequireAuth>}>
-        <Route index         element={<Dashboard />} />
-        <Route path="tasks"          element={<DailyTasks />} />
-        <Route path="challenge"      element={<ChallengeGrid />} />
-        <Route path="day/:dayNumber" element={<DayDetail />} />
-        <Route path="settings"       element={<Settings />} />
-      </Route>
+        {/* App */}
+        <Route element={<RequireAuth><AppShell /></RequireAuth>}>
+          <Route index         element={<Dashboard />} />
+          <Route path="tasks"          element={<DailyTasks />} />
+          <Route path="challenge"      element={<ChallengeGrid />} />
+          <Route path="day/:dayNumber" element={<DayDetail />} />
+          <Route path="settings"       element={<Settings />} />
+        </Route>
 
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </ErrorBoundary>
   );
 }

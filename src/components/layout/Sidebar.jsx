@@ -47,15 +47,10 @@ export default function Sidebar() {
   return (
     <aside className="hidden md:flex flex-col w-64 bg-white border-r border-gray-200 h-screen sticky top-0 shrink-0 z-40 shadow-[4px_0_24px_rgba(0,0,0,0.02)]">
       {/* Brand Header */}
-      <div className="h-16 px-6 flex items-center gap-2.5 border-b border-gray-200">
-        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-brand-500 to-brand-600 flex items-center justify-center shadow-brand">
-          <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-          </svg>
-        </div>
+      <div className="h-16 px-6 flex items-center gap-3 border-b border-gray-200">
+        <img src="/eldropluslogomain.png" alt="eldroplus" className="w-8 h-8 object-contain rounded-lg" />
         <div>
-          <span className="font-display font-extrabold text-lg tracking-tight text-gray-900">Eldro</span>
-          <span className="font-display font-extrabold text-lg text-brand-500">+</span>
+          <span className="font-display font-extrabold text-lg tracking-tight text-gray-900">eldroplus</span>
         </div>
       </div>
 
@@ -79,7 +74,7 @@ export default function Sidebar() {
                 {icon(isActive)}
                 <span>{label}</span>
                 {isActive && (
-                  <div className="ml-auto w-1.5 h-1.5 rounded-full bg-brand-500 shadow-[0_0_8px_#E84C1E]" />
+                  <div className="ml-auto w-1.5 h-1.5 rounded-full bg-brand-500 shadow-[0_0_8px_#84b49c]" />
                 )}
               </>
             )}

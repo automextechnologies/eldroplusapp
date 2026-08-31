@@ -11,12 +11,12 @@ export default defineConfig({
       strategies: 'injectManifest',
       srcDir: 'src',
       filename: 'sw.js',
-      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'badge-72x72.png'],
+      includeAssets: ['eldropluslogomain.png', 'favicon.ico', 'apple-touch-icon.png', 'badge-72x72.png'],
       manifest: {
-        name: '30-Day Health Challenge',
-        short_name: 'HealthChallenge',
-        description: 'Transform your health in 30 days with daily tasks and reminders',
-        theme_color: '#16a34a',
+        name: 'eldroplus',
+        short_name: 'eldroplus',
+        description: 'eldroplus — Live Healthy, Better Tomorrow',
+        theme_color: '#84b49c',
         background_color: '#ffffff',
         display: 'standalone',
         orientation: 'portrait',
@@ -26,7 +26,8 @@ export default defineConfig({
         icons: [
           { src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png' },
           { src: 'pwa-512x512.png', sizes: '512x512', type: 'image/png' },
-          { src: 'pwa-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' }
+          { src: 'pwa-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+          { src: 'eldropluslogomain.png', sizes: '1254x1254', type: 'image/png' }
         ],
         shortcuts: [
           {

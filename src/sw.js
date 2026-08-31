@@ -43,7 +43,7 @@ self.addEventListener('message', (event) => {
     for (const reminder of event.data.reminders) {
       if (reminder.delayMs <= 0) continue;
       const timerId = setTimeout(() => {
-        self.registration.showNotification('30-Day Health Challenge', {
+        self.registration.showNotification('eldroplus', {
           body: reminder.msg,
           icon: '/pwa-192x192.png',
           badge: '/badge-72x72.png',
@@ -108,7 +108,7 @@ firebase.initializeApp({
   projectId: "eldroplus",
   storageBucket: "eldroplus.firebasestorage.app",
   messagingSenderId: "1011847414777",
-  appId: "1:1011847414777:web:2aefd0b666abab48b7f328"
+  appId: "1:1011847414777:web:428673e3fea271e4b7f328"
 });
 
 const messaging = firebase.messaging();

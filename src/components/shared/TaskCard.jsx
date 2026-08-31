@@ -68,11 +68,10 @@ export default function TaskCard({
     }
   }
 
-  return (
-    <div
+  return (    <div
       className={`w-full rounded-2xl border transition-all duration-300 overflow-hidden ${
         isCompleted
-          ? 'bg-white border-brand-500/25 shadow-[0_4px_16px_rgba(232,76,30,0.04)]'
+          ? 'bg-white border-brand-500/25 shadow-[0_4px_16px_rgba(132,180,156,0.08)]'
           : readonly
           ? 'bg-gray-50/50 border-gray-100 opacity-60'
           : expanded
@@ -106,7 +105,7 @@ export default function TaskCard({
         </div>
         <div className="flex-shrink-0">
           {isCompleted ? (
-            <div className="w-7 h-7 rounded-full flex items-center justify-center shadow-[0_0_8px_rgba(232,76,30,0.15)]" style={{ backgroundColor: config.color }}>
+            <div className="w-7 h-7 rounded-full flex items-center justify-center shadow-[0_0_8px_rgba(132,180,156,0.2)]" style={{ backgroundColor: config.color }}>
               <svg className="w-4.5 h-4.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
               </svg>
@@ -187,7 +186,7 @@ export default function TaskCard({
               type="button"
               onClick={() => onSubmit(taskId, { amount: val, unit: config.unit })}
               disabled={loading || (log?.amount === val)}
-              className="flex-1 py-2.5 rounded-xl text-xs font-bold text-white transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2 shadow-[0_4px_12px_rgba(232,76,30,0.15)]"
+              className="flex-1 py-2.5 rounded-xl text-xs font-bold text-white transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2 shadow-[0_4px_12px_rgba(132,180,156,0.2)]"
               style={{
                 background: `linear-gradient(135deg, ${config.color} 0%, ${config.color}bb 100%)`
               }}

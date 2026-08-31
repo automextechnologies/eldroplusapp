@@ -72,12 +72,12 @@ function BrandPanel() {
       <div className="absolute -top-24 -right-24 w-80 h-80 rounded-full bg-white/10 pointer-events-none" />
       <div className="absolute -bottom-16 -left-16 w-60 h-60 rounded-full bg-black/5 blur-sm pointer-events-none" />
       <div className="absolute top-1/3 -right-8 w-36 h-36 rounded-full bg-white/10 pointer-events-none" />
-      <div className="relative w-28 h-28 rounded-[28px] flex items-center justify-center p-5 mb-7"
-        style={{ background:'rgba(232,76,30,0.06)', border:'1px solid rgba(232,76,30,0.15)', boxShadow:'0 8px 32px rgba(232,76,30,0.06)', backdropFilter:'blur(8px)' }}>
-        <EldroPlusMark color="#E84C1E" />
+      <div className="relative w-28 h-28 rounded-[28px] flex items-center justify-center p-3 mb-7"
+        style={{ background:'rgba(132,180,156,0.1)', border:'1px solid rgba(132,180,156,0.25)', boxShadow:'0 8px 32px rgba(132,180,156,0.1)', backdropFilter:'blur(8px)' }}>
+        <img src="/eldropluslogomain.png" alt="eldroplus logo" className="w-full h-full object-contain" />
       </div>
       <h1 className="font-display font-black text-5xl text-brand-950 tracking-tight leading-none">
-        Eldro<span className="text-brand-600">+</span>
+        eldroplus
       </h1>
       <p className="text-[11px] font-semibold tracking-[0.24em] mt-3 mb-10 uppercase text-brand-600/60">
         Live Healthy · Better Tomorrow
@@ -85,7 +85,7 @@ function BrandPanel() {
       <div className="w-full space-y-3 max-w-[220px]">
         {features.map(({ icon, label }) => (
           <div key={label} className="flex items-center gap-3 rounded-2xl px-4 py-3"
-            style={{ background:'rgba(232,76,30,0.04)', border:'1px solid rgba(232,76,30,0.08)' }}>
+            style={{ background:'rgba(132,180,156,0.06)', border:'1px solid rgba(132,180,156,0.12)' }}>
             <div className="w-6 h-6 rounded-lg bg-brand-500/10 flex items-center justify-center shrink-0">
               {icon}
             </div>
@@ -99,8 +99,8 @@ function BrandPanel() {
 
 const inputBase = { background: '#ffffff', border: '1.5px solid #E5E7EB', fontSize: '15px', color: '#1F2937' };
 function applyFocus(e) {
-  e.target.style.borderColor = '#E84C1E';
-  e.target.style.boxShadow = '0 0 0 4px rgba(232,76,30,0.1)';
+  e.target.style.borderColor = '#84b49c';
+  e.target.style.boxShadow = '0 0 0 4px rgba(132,180,156,0.15)';
   e.target.style.background = '#ffffff';
 }
 function applyBlur(e) {
@@ -125,10 +125,13 @@ export default function Login() {
     if (!identifier || !password) { setError('Please fill in all fields'); return; }
     setLoading(true); setError('');
     try {
-      const { user, token } = await api.post('/api/auth/login', { phone: identifier, password });
+      const { user, token } = await api.post('/api/auth/login', {
+        phone: identifier.trim(),
+        password: password.trim()
+      });
       setUser(user, token);
       if (user?.role === 'admin') {
-        navigate('/admin');
+        navigate('/admin/dashboard');
       } else {
         navigate('/');
       }
@@ -193,17 +196,15 @@ export default function Login() {
         </button>
       </div>
 
-      {/* Forgot */}
       <div className="text-right" style={{ marginTop: '-4px' }}>
         <button type="button" className="text-xs md:text-sm font-semibold text-brand-500 hover:text-brand-600">
           Forgot password?
         </button>
       </div>
 
-      {/* Submit */}
       <button type="submit" disabled={loading}
         className="w-full py-3 md:py-4 rounded-xl md:rounded-2xl font-display font-bold text-white text-sm md:text-[15px] active:scale-[0.97] transition-all duration-150 disabled:opacity-60 disabled:cursor-not-allowed"
-        style={{ background:'linear-gradient(135deg, #FF6B40 0%, #E84C1E 100%)', boxShadow:'0 4px 18px rgba(232,76,30,0.2)' }}>
+        style={{ background:'linear-gradient(135deg, #84b49c 0%, #849c84 100%)', boxShadow:'0 4px 18px rgba(132,180,156,0.3)' }}>
         {loading ? (
           <span className="flex items-center justify-center gap-2">
             <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
@@ -226,27 +227,26 @@ export default function Login() {
 
   return (
     <>
-      {/* MOBILE */}
       <div
         className="md:hidden h-[100dvh] flex flex-col overflow-hidden bg-surface"
       >
         <div 
           className="flex flex-col items-center text-center px-5 pt-12 pb-7 shrink-0 border-b border-brand-500/10"
-          style={{ background: 'linear-gradient(160deg, #FFF0EB 0%, #FFE0D6 100%)' }}
+          style={{ background: 'linear-gradient(160deg, #F2F8F4 0%, #b4d8c0 100%)' }}
         >
           <div className="absolute top-0 right-0 w-48 h-48 rounded-full bg-white/5 pointer-events-none -z-0" />
-          <div className="relative w-12 h-12 rounded-[15px] flex items-center justify-center p-2.5 mb-3"
-            style={{ background:'rgba(232,76,30,0.06)', border:'1px solid rgba(232,76,30,0.15)', backdropFilter:'blur(8px)', boxShadow:'0 4px 16px rgba(232,76,30,0.06)' }}>
-            <EldroPlusMark color="#E84C1E" />
+          <div className="relative w-12 h-12 rounded-[15px] flex items-center justify-center p-1.5 mb-3"
+            style={{ background:'rgba(132,180,156,0.1)', border:'1px solid rgba(132,180,156,0.25)', backdropFilter:'blur(8px)', boxShadow:'0 4px 16px rgba(132,180,156,0.1)' }}>
+            <img src="/eldropluslogomain.png" alt="eldroplus logo" className="w-full h-full object-contain" />
           </div>
           <h1 className="font-display font-black text-[1.85rem] text-brand-950 tracking-tight leading-none">
-            Eldro<span className="text-brand-600">+</span>
+            eldroplus
           </h1>
           <p className="text-[10px] font-semibold tracking-[0.22em] mt-1.5 uppercase text-brand-600/60">
             Live Healthy · Better Tomorrow
           </p>
         </div>
-        <div className="flex-1 min-h-0 bg-[#F8F9FA] border-t border-gray-200 rounded-t-[1.75rem] overflow-y-auto px-5 pt-6 pb-5">
+        <div className="flex-1 min-h-0 bg-[#F4F8F5] border-t border-gray-200 rounded-t-[1.75rem] overflow-y-auto px-5 pt-6 pb-5">
           <h2 className="font-display font-extrabold text-xl text-gray-900 mb-0.5">Welcome back</h2>
           <p className="text-xs mb-4 text-gray-500">Sign in to continue your journey</p>
           {errorBanner}
@@ -254,14 +254,13 @@ export default function Login() {
         </div>
       </div>
 
-      {/* DESKTOP / TABLET */}
       <div className="hidden md:flex min-h-[100dvh] items-center justify-center p-8 bg-surface"
-           style={{ background: 'linear-gradient(135deg, #F8F9FA 0%, #FFEBE5 50%, #FFF5F2 100%)' }}>
+           style={{ background: 'linear-gradient(135deg, #F4F8F5 0%, #E2F0E7 50%, #F2F8F4 100%)' }}>
         <div className="w-full"
           style={{ maxWidth:'960px', background:'#ffffff', borderRadius:'2.8rem', padding:'14px',
                    border: '1px solid #E5E7EB', boxShadow:'0 32px 80px rgba(0,0,0,0.03)' }}>
           <div className="flex overflow-hidden"
-            style={{ borderRadius:'2.1rem', background:'linear-gradient(155deg, #FFF0EB 0%, #FFE0D6 100%)', border: '1px solid #FFE0D6', minHeight:'600px' }}>
+            style={{ borderRadius:'2.1rem', background:'linear-gradient(155deg, #F2F8F4 0%, #b4d8c0 100%)', border: '1px solid #b4d8c0', minHeight:'600px' }}>
             <div className="w-[44%] shrink-0"><BrandPanel /></div>
             <div className="flex-1 flex items-stretch py-4 pr-4">
               <div className="bg-[#ffffff] border border-gray-200 w-full flex flex-col justify-center px-9 py-8 overflow-y-auto"

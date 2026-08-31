@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import db from '../../db/dexie';
 import { TASK_ORDER, TASK_CONFIG } from '../../utils/taskConfig';
+import { isTaskCompleted } from '../../utils/taskCompletion';
 
 export default function PreviousDaySummary({ currentDayNumber }) {
   const [expanded, setExpanded] = useState(false);
@@ -17,10 +18,14 @@ export default function PreviousDaySummary({ currentDayNumber }) {
   const logMap = {};
   logs.forEach((l) => { logMap[l.taskId] = l; });
 
-  const completedCount = TASK_ORDER.filter((t) => logMap[t]?.completed).length;
+  const completedCount = TASK_ORDER.filter((t) => {
+    const log = logMap[t];
+    return isTaskCompleted(t, log, prevDay, currentDayNumber);
+  }).length;
 
   function formatAmount(taskId, log) {
-    if (!log?.completed) return '—';
+    const isCompleted = isTaskCompleted(taskId, log, prevDay, currentDayNumber);
+    if (!isCompleted) return '—';
     if (taskId === 'water') return log.amount >= 1000 ? `${(log.amount / 1000).toFixed(1)}L` : `${log.amount}ml`;
     if (taskId === 'yoga' || taskId === 'meditation') return `${log.amount} min`;
     if (taskId === 'protein') return `${log.amount}g`;
@@ -56,7 +61,7 @@ export default function PreviousDaySummary({ currentDayNumber }) {
                 <span className="text-gray-500">{config.icon}</span>
                 <span className="flex-1 text-sm text-gray-700">{config.name}</span>
                 <span
-                  className={`text-sm font-mono font-500 ${log?.completed ? 'text-gray-900' : 'text-gray-300'}`}
+                  className={`text-sm font-mono font-500 ${isTaskCompleted(taskId, log, prevDay, currentDayNumber) ? 'text-gray-900' : 'text-gray-300'}`}
                 >
                   {formatAmount(taskId, log)}
                 </span>

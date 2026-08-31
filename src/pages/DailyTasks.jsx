@@ -9,6 +9,34 @@ import { TASK_ORDER } from '../utils/taskConfig';
 import { isTaskCompleted } from '../utils/taskCompletion';
 import TaskCard from '../components/shared/TaskCard';
 
+const PRE_RECORDED_VIDEOS = [
+  {
+    title: "15 Min Daily Stretch & Mobility Routine",
+    youtubeId: "d83Vz1Lz44s",
+    description: "Start your day with this simple routine to enhance mobility and flexibility."
+  },
+  {
+    title: "10 Min Energizing Morning Yoga",
+    youtubeId: "4PkcfVjG7Kk",
+    description: "Boost your energy and focus with gentle movements and breathwork."
+  },
+  {
+    title: "10 Min Mindfulness Breathing Meditation",
+    youtubeId: "ZToicYcHIOU",
+    description: "Centering meditation to reduce anxiety, stress, and bring mental clarity."
+  },
+  {
+    title: "15 Min Low Impact Full Body Strength",
+    youtubeId: "gC_L9_DMct8",
+    description: "Build stamina and strength with low impact, joints-friendly exercises."
+  },
+  {
+    title: "12 Min Deep Sleep & Relaxation Yoga",
+    youtubeId: "O-6f5wQXSu8",
+    description: "Unwind after a busy day to prepare your mind and body for restful sleep."
+  }
+];
+
 export default function DailyTasks() {
   const user = useUserStore((s) => s.user);
   const currentDayNumber = useUserStore((s) => s.currentDayNumber)();
@@ -38,12 +66,21 @@ export default function DailyTasks() {
 
   const allLogs = useLiveQuery(() => db.taskLogs.toArray(), []);
 
-  if (!user || !allLogs) return null;
+  if (!user || !allLogs) {
+    return (
+      <div className="min-h-screen bg-surface flex items-center justify-center p-6 text-center">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-10 h-10 border-4 border-brand-500 border-t-transparent rounded-full animate-spin" />
+          <p className="text-xs font-bold text-gray-500">Loading daily tasks...</p>
+        </div>
+      </div>
+    );
+  }
 
-  const isChallengeStarted = user.startDate ? isDayUnlocked(1, user.startDate) : true;
+  const isChallengeStarted = user.batchId ? (user.startDate ? isDayUnlocked(1, user.startDate) : false) : !!user.challengeStarted;
 
   // Active day status
-  const isUnlocked = isDayUnlocked(activeDay, user.startDate);
+  const isUnlocked = isChallengeStarted && isDayUnlocked(activeDay, user.startDate);
   const isFuture = !isUnlocked;
   const isPast = isUnlocked && activeDay < currentDayNumber;
   const isToday = isUnlocked && activeDay === currentDayNumber;
@@ -187,12 +224,28 @@ export default function DailyTasks() {
               </svg>
             </div>
             <h2 className="font-display font-extrabold text-gray-900 text-lg">Challenge has not started yet</h2>
-            <p className="text-sm text-gray-500 mt-2">
-              Your 30-day wellness challenge is scheduled to begin on:
-            </p>
-            <p className="inline-block mt-3 px-4 py-2 bg-brand-50 border border-brand-200 rounded-2xl text-brand-600 font-bold text-sm font-mono">
-              {user.startDate ? new Date(user.startDate).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
-            </p>
+            {user.startDate ? (
+              <>
+                <p className="text-sm text-gray-500 mt-2">
+                  Your 30-day wellness challenge is scheduled to begin on:
+                </p>
+                <p className="inline-block mt-3 px-4 py-2 bg-brand-50 border border-brand-200 rounded-2xl text-brand-600 font-bold text-sm font-mono">
+                  {new Date(user.startDate).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' })}
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="text-sm text-gray-500 mt-2">
+                  You are assigned to the **{user.packageId?.name || 'Tester Pack'}** package. Please start the challenge on your profile page to begin.
+                </p>
+                <button
+                  onClick={() => navigate('/settings')}
+                  className="mt-4 btn-brand px-6 py-2.5 rounded-xl font-bold text-xs shadow-brand"
+                >
+                  Go to Profile (Settings)
+                </button>
+              </>
+            )}
           </div>
         </div>
       ) : (
@@ -217,7 +270,7 @@ export default function DailyTasks() {
                   >
                     <div className={`absolute -left-[33px] w-4 h-4 rounded-full border-2 transition-all flex items-center justify-center ${
                       isActive 
-                        ? 'border-brand-500 bg-white scale-125 shadow-[0_0_8px_rgba(232,76,30,0.3)]' 
+                        ? 'border-brand-500 bg-white scale-125 shadow-[0_0_8px_rgba(132,180,156,0.35)]' 
                         : dStatus === 'locked'
                         ? 'border-dashed border-gray-300 bg-white'
                         : dStatus === 'complete'
@@ -256,7 +309,7 @@ export default function DailyTasks() {
           <main className="col-span-1 lg:col-span-8 space-y-6">
             <div 
               className="rounded-3xl p-6 text-brand-950 relative overflow-hidden shadow-sm border border-brand-500/10"
-              style={{ background: 'linear-gradient(135deg, #FFF0EB 0%, #FFE0D6 100%)' }}
+              style={{ background: 'linear-gradient(135deg, #F2F8F4 0%, #b4d8c0 100%)' }}
             >
               <div className="absolute -top-12 -right-12 w-36 h-36 rounded-full bg-white/10 blur-md pointer-events-none" />
               <div className="relative flex justify-between items-start">
@@ -280,7 +333,7 @@ export default function DailyTasks() {
                   </div>
                   <div className="h-2.5 bg-brand-500/15 rounded-full overflow-hidden">
                     <div 
-                      className="h-full bg-gradient-to-r from-brand-500 to-brand-600 rounded-full transition-all duration-500 shadow-[0_0_8px_rgba(232,76,30,0.15)]"
+                      className="h-full bg-gradient-to-r from-brand-500 to-brand-600 rounded-full transition-all duration-500 shadow-[0_0_8px_rgba(132,180,156,0.35)]"
                       style={{ width: `${activeProgressPercent}%` }}
                     />
                   </div>
@@ -306,8 +359,42 @@ export default function DailyTasks() {
                 <p className="text-xs text-gray-500 mt-1">Unlock date: {new Date(getUnlockDate(activeDay, user.startDate)).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</p>
               </div>
             ) : (
-              <div className="space-y-3">
-                {TASK_ORDER.map((taskId) => (
+              <div className="space-y-6">
+                {!user.batchId && (
+                  <div className="bg-white rounded-3xl border border-gray-200 overflow-hidden shadow-sm space-y-4">
+                    <div className="px-6 pt-5 flex justify-between items-center">
+                      <div>
+                        <span className="px-2 py-0.5 bg-brand-50 text-brand-700 text-[10px] font-bold rounded-lg border border-brand-100 uppercase tracking-wide">
+                          Daily Class Video 📹
+                        </span>
+                        <h3 className="font-display font-extrabold text-sm text-gray-900 mt-1.5">
+                          {PRE_RECORDED_VIDEOS[(activeDay - 1) % 5].title}
+                        </h3>
+                      </div>
+                      <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider bg-gray-50 border border-gray-100 px-2 py-1 rounded">
+                        Day {activeDay} Video
+                      </span>
+                    </div>
+                    
+                    <div className="aspect-video w-full bg-black relative">
+                      <iframe
+                        className="w-full h-full"
+                        src={`https://www.youtube.com/embed/${PRE_RECORDED_VIDEOS[(activeDay - 1) % 5].youtubeId}?rel=0&modestbranding=1`}
+                        title={PRE_RECORDED_VIDEOS[(activeDay - 1) % 5].title}
+                        frameBorder="0"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                        allowFullScreen
+                      />
+                    </div>
+                    
+                    <p className="text-xs text-gray-500 px-6 pb-5 leading-relaxed">
+                      {PRE_RECORDED_VIDEOS[(activeDay - 1) % 5].description}
+                    </p>
+                  </div>
+                )}
+
+                <div className="space-y-3">
+                  {TASK_ORDER.map((taskId) => (
                   <TaskCard
                     key={taskId}
                     taskId={taskId}
@@ -322,7 +409,8 @@ export default function DailyTasks() {
                   />
                 ))}
               </div>
-            )}
+            </div>
+          )}
 
             {isPast && (
               <div className="bg-white rounded-2xl p-4 border border-gray-200 text-center flex items-center justify-center gap-2 shadow-sm">

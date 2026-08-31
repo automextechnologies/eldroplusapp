@@ -93,6 +93,20 @@ export default function Settings() {
     }
   }
 
+  async function handleStartChallenge() {
+    try {
+      const res = await api.put('/api/user/profile', { action: 'startChallenge' });
+      if (res.user) {
+        updateUser(res.user);
+        alert('Challenge started successfully! Go to Dashboard to check your tasks.');
+        navigate('/');
+      }
+    } catch (err) {
+      console.error('Failed to start challenge:', err);
+      alert(err.message || 'Failed to start challenge');
+    }
+  }
+
   if (!user) return null;
 
   const initials = user.name?.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase() || '?';
@@ -103,7 +117,7 @@ export default function Settings() {
       {/* Header */}
       <div 
         className="px-5 pt-14 pb-20 md:py-10 md:rounded-3xl relative overflow-hidden mb-6 border border-brand-500/10"
-        style={{ background: 'linear-gradient(135deg, #FFF0EB 0%, #FFE0D6 100%)' }}
+        style={{ background: 'linear-gradient(135deg, #F2F8F4 0%, #b4d8c0 100%)' }}
       >
         <div className="absolute -top-12 -right-12 w-52 h-52 rounded-full bg-white/10 blur-md pointer-events-none" />
         <div className="absolute top-10 -left-8 w-28 h-28 rounded-full bg-black/5 blur-xl pointer-events-none" />
@@ -112,11 +126,57 @@ export default function Settings() {
       </div>
 
       <div className="max-w-4xl mx-auto">
+        {/* Start the Challenge Card */}
+        {!user.batchId && !user.challengeStarted && (
+          <div className="px-4 md:px-0 mb-6">
+            <div className="premium-card p-6 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-3xl shadow-sm text-center space-y-4">
+              <div className="w-12 h-12 bg-amber-100/80 rounded-full flex items-center justify-center mx-auto text-amber-700">
+                <svg className="w-6 h-6 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+              </div>
+              <div className="space-y-1">
+                <h3 className="font-display font-black text-lg text-brand-950">Start Your 30-Day Health Challenge!</h3>
+                <p className="text-sm text-brand-800 max-w-md mx-auto">
+                  Your package **{user.packageId?.name || 'Tester Pack'}** is ready. Click below to start the challenge and unlock your pre-recorded daily classes and tasks.
+                </p>
+              </div>
+              <button
+                onClick={handleStartChallenge}
+                className="btn-brand px-8 py-3 rounded-2xl font-bold text-sm shadow-brand animate-bounce"
+              >
+                Start the Challenge 🚀
+              </button>
+            </div>
+          </div>
+        )}
+
+        {!user.batchId && user.challengeStarted && (
+          <div className="px-4 md:px-0 mb-6">
+            <div className="premium-card p-5 bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-3xl shadow-sm flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-700">
+                  <svg className="w-5.5 h-5.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <div>
+                  <h4 className="font-display font-bold text-sm text-emerald-950">Challenge Active</h4>
+                  <p className="text-xs text-emerald-800">Started on {new Date(user.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
+                </div>
+              </div>
+              <span className="px-2.5 py-1 bg-white text-emerald-700 text-[10px] font-bold rounded-lg border border-emerald-200">
+                📦 {user.packageId?.name || 'Tester Pack'}
+              </span>
+            </div>
+          </div>
+        )}
+
         {/* Avatar card */}
         <div className="px-4 md:px-0 -mt-8 md:mt-0 mb-6">
           <div className="premium-card p-5 flex items-center gap-4">
             <div className="w-16 h-16 rounded-2xl flex items-center justify-center shadow-inner-sm"
-                 style={{ background: 'linear-gradient(135deg, #FF6B40 0%, #E84C1E 100%)' }}>
+                 style={{ background: 'linear-gradient(135deg, #84b49c 0%, #849c84 100%)' }}>
               <span className="font-display font-extrabold text-2xl text-white">{initials}</span>
             </div>
             <div className="flex-1">
@@ -250,7 +310,7 @@ export default function Settings() {
 
         </div>
 
-        <p className="text-center text-xs text-gray-400 pt-2 pb-6 md:pb-0">HealthX · 30-Day Challenge · v1.0</p>
+        <p className="text-center text-xs text-gray-400 pt-2 pb-6 md:pb-0">eldroplus · v1.0</p>
       </div>
     </div>
   );

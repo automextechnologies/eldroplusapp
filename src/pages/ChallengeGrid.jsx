@@ -51,7 +51,7 @@ function DayBox({ dayNumber, status, progress, startDate, currentDayNumber }) {
       <button
         onClick={handleTap}
         className={`aspect-square w-full rounded-xl flex flex-col items-center justify-center relative overflow-hidden transition-all active:scale-95 ${statusStyles[status]}`}
-        style={status === 'complete' ? { background: 'linear-gradient(135deg, #FF6B40 0%, #E84C1E 100%)' } : {}}
+        style={status === 'complete' ? { background: 'linear-gradient(135deg, #84b49c 0%, #849c84 100%)' } : {}}
       >
         {status === 'locked' && (
           <svg className="w-3.5 h-3.5 mb-0.5 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -122,7 +122,7 @@ export default function ChallengeGrid() {
     return { dayNumber, status, progress };
   });
 
-  const isChallengeStarted = user.startDate ? isDayUnlocked(1, user.startDate) : true;
+  const isChallengeStarted = user.batchId ? (user.startDate ? isDayUnlocked(1, user.startDate) : false) : !!user.challengeStarted;
 
   return (
     <div className="min-h-screen bg-surface md:p-4 pb-12">
@@ -133,7 +133,11 @@ export default function ChallengeGrid() {
             {isChallengeStarted ? (
               `${completedDays} days completed · ${30 - currentDayNumber + 1} days to go`
             ) : (
-              `Starts on ${new Date(user.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
+              user.startDate ? (
+                `Starts on ${new Date(user.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
+              ) : (
+                "Please go to Profile (Settings) page to start your challenge"
+              )
             )}
           </p>
         </div>

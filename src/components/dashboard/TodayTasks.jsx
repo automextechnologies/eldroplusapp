@@ -5,6 +5,7 @@ import { useApi } from '../../hooks/useApi';
 import { useNotifications } from '../../hooks/useNotifications';
 import { formatDate } from '../../utils/dateUtils';
 import { TASK_ORDER, TASK_CONFIG } from '../../utils/taskConfig';
+import { isTaskCompleted } from '../../utils/taskCompletion';
 import TaskCard from '../shared/TaskCard';
 import BottomSheet from '../shared/BottomSheet';
 import YogaTask from '../tasks/YogaTask';
@@ -38,17 +39,25 @@ export default function TodayTasks({ dayNumber }) {
   const logMap = {};
   logs?.forEach((l) => { logMap[l.taskId] = l; });
 
-  const completedCount = TASK_ORDER.filter((t) => logMap[t]?.completed).length;
+  const completedCount = TASK_ORDER.filter((t) => {
+    const log = logMap[t];
+    return isTaskCompleted(t, log, dayNumber, dayNumber);
+  }).length;
   const progress = (completedCount / 5) * 100;
 
   async function handleSubmit(taskId, data) {
     setLoading(true);
     try {
+      let completed = true;
+      if (taskId === 'water' || taskId === 'protein') {
+        completed = false;
+      }
+
       const optimisticLog = {
         dayNumber,
         taskId,
         date: todayDate,
-        completed: true,
+        completed,
         amount: data.amount,
         unit: data.unit,
         completedAt: new Date().toISOString(),
@@ -70,12 +79,12 @@ export default function TodayTasks({ dayNumber }) {
         setTimeout(() => setConfetti(false), 1000);
       }
 
-      api.post('/api/tasks/log', { dayNumber, taskId, ...data })
+      api.post('/api/tasks/log', { dayNumber, taskId, ...data, completed, date: todayDate })
         .catch(() => {
           db.syncQueue.add({
             endpoint: '/api/tasks/log',
             method: 'POST',
-            body: { dayNumber, taskId, ...data },
+            body: { dayNumber, taskId, ...data, completed, date: todayDate },
             createdAt: new Date(),
           });
         });
@@ -99,7 +108,7 @@ export default function TodayTasks({ dayNumber }) {
         <div className="flex gap-1 mb-4">
           {TASK_ORDER.map((taskId) => {
             const config = TASK_CONFIG[taskId];
-            const done = logMap[taskId]?.completed;
+            const done = isTaskCompleted(taskId, logMap[taskId], dayNumber, dayNumber);
             return (
               <div
                 key={taskId}

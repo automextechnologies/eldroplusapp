@@ -11,7 +11,7 @@ const STATS = [
 ];
 
 export default function CumulativeStats() {
-  const logs = useLiveQuery(() => db.taskLogs.where('completed').equals(1).toArray(), []);
+  const logs = useLiveQuery(() => db.taskLogs.toArray(), []);
 
   if (!logs) return (
     <div className="px-4">
@@ -24,7 +24,7 @@ export default function CumulativeStats() {
   );
 
   function getStat(taskId, avg = false) {
-    const taskLogs = logs.filter((l) => l.taskId === taskId && l.completed);
+    const taskLogs = logs.filter((l) => l.taskId === taskId && l.amount > 0);
     if (taskLogs.length === 0) return 0;
     const total = taskLogs.reduce((sum, l) => sum + (l.amount || 0), 0);
     return avg ? total / taskLogs.length : total;

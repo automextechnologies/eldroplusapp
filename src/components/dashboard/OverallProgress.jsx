@@ -1,6 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import db from '../../db/dexie';
-import { TASK_ORDER } from '../../utils/taskConfig';
+import { isTaskCompleted } from '../../utils/taskCompletion';
 
 const REQUIRED = ['yoga', 'meditation', 'water', 'protein'];
 
@@ -11,9 +11,12 @@ export default function OverallProgress({ currentDayNumber }) {
 
   let completedDays = 0;
   for (let d = 1; d < currentDayNumber; d++) {
-    const dayLogs = logs.filter((l) => l.dayNumber === d && l.completed);
-    const taskIds = dayLogs.map((l) => l.taskId);
-    if (REQUIRED.every((t) => taskIds.includes(t))) completedDays++;
+    const dayLogs = logs.filter((l) => l.dayNumber === d);
+    const allDone = REQUIRED.every((t) => {
+      const log = dayLogs.find((l) => l.taskId === t);
+      return isTaskCompleted(t, log, d, currentDayNumber);
+    });
+    if (allDone) completedDays++;
   }
 
   const missedCount = (currentDayNumber - 1) - completedDays;

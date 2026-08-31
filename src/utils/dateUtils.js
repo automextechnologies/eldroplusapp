@@ -1,34 +1,62 @@
-import { addDays, parseISO, setHours, setMinutes, isBefore, format } from 'date-fns';
+import { addDays, parseISO, setHours, setMinutes, format } from 'date-fns';
 
 export function formatDate(d = new Date()) {
-  return format(d, 'yyyy-MM-dd');
+  try {
+    return format(d, 'yyyy-MM-dd');
+  } catch {
+    return format(new Date(), 'yyyy-MM-dd');
+  }
 }
 
 export function isDayUnlocked(dayNumber, startDate) {
   if (!startDate) return false;
-  const start = parseISO(typeof startDate === 'string' ? startDate : startDate.toISOString().split('T')[0]);
-  let unlockDate = addDays(start, dayNumber - 1);
-  unlockDate = setHours(setMinutes(unlockDate, 0), 1);
-  return isBefore(unlockDate, new Date());
+  try {
+    const dateStr = typeof startDate === 'string' ? startDate : (startDate?.toISOString ? startDate.toISOString().split('T')[0] : String(startDate));
+    if (!dateStr) return false;
+    const start = parseISO(dateStr);
+    if (isNaN(start.getTime())) return false;
+    let unlockDate = addDays(start, (dayNumber || 1) - 1);
+    unlockDate = setHours(setMinutes(unlockDate, 0), 0);
+    return unlockDate <= new Date();
+  } catch {
+    return false;
+  }
 }
 
 export function getUnlockDate(dayNumber, startDate) {
-  const start = parseISO(typeof startDate === 'string' ? startDate : startDate.toISOString().split('T')[0]);
-  let unlockDate = addDays(start, dayNumber - 1);
-  unlockDate = setHours(setMinutes(unlockDate, 0), 1);
-  return unlockDate;
+  if (!startDate) return new Date();
+  try {
+    const dateStr = typeof startDate === 'string' ? startDate : (startDate?.toISOString ? startDate.toISOString().split('T')[0] : String(startDate));
+    if (!dateStr) return new Date();
+    const start = parseISO(dateStr);
+    if (isNaN(start.getTime())) return new Date();
+    let unlockDate = addDays(start, (dayNumber || 1) - 1);
+    unlockDate = setHours(setMinutes(unlockDate, 0), 0);
+    return unlockDate;
+  } catch {
+    return new Date();
+  }
 }
 
 export function getCurrentDayNumber(startDate) {
   if (!startDate) return 1;
-  const start = new Date(startDate);
-  start.setHours(0, 0, 0, 0);
-  const now = new Date();
-  now.setHours(0, 0, 0, 0);
-  const diff = Math.floor((now - start) / (1000 * 60 * 60 * 24));
-  return Math.min(Math.max(diff + 1, 1), 30);
+  try {
+    const start = new Date(startDate);
+    if (isNaN(start.getTime())) return 1;
+    start.setHours(0, 0, 0, 0);
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    const diff = Math.floor((now - start) / (1000 * 60 * 60 * 24));
+    return Math.min(Math.max(diff + 1, 1), 30);
+  } catch {
+    return 1;
+  }
 }
 
 export function formatUnlockDate(date) {
-  return format(date, 'MMM d') + ' at 1:00 AM';
+  try {
+    return format(date, 'MMM d') + ' at 12:00 AM';
+  } catch {
+    return '12:00 AM';
+  }
 }

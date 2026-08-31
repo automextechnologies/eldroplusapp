@@ -55,7 +55,7 @@ export default function BottomNav() {
                 <div className={`relative p-1.5 rounded-2xl transition-all duration-200 ${isActive ? 'bg-brand-50' : ''}`}>
                   {icon(isActive)}
                   {isActive && (
-                    <div className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-brand-500 shadow-[0_0_8px_#E84C1E]" />
+                    <div className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-brand-500 shadow-[0_0_8px_#84b49c]" />
                   )}
                 </div>
                 <span className={`text-[10px] font-bold tracking-wide transition-colors duration-150 ${isActive ? 'text-brand-500' : 'text-gray-400'}`}>
