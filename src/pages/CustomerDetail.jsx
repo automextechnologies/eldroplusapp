@@ -278,7 +278,7 @@ export default function CustomerDetail() {
     };
 
     const customerDayNum = getCurrentDayNumberLocal(user.startDate);
-    const REQUIRED = ['yoga', 'meditation', 'water', 'protein'];
+    const REQUIRED = ['yoga', 'meditation', 'water'];
 
     // Streak
     let streak = 0;
@@ -296,7 +296,7 @@ export default function CustomerDetail() {
     let completedDaysCount = 0;
     for (let d = 1; d <= 30; d++) {
       const dayLogs = logs.filter((l) => l.dayNumber === d);
-      const allDone = ['yoga', 'meditation', 'water', 'protein', 'sleep'].every((taskId) => {
+      const allDone = TASK_ORDER.every((taskId) => {
         const log = dayLogs.find((l) => l.taskId === taskId);
         return isTaskCompleted(taskId, log, d, customerDayNum);
       });
@@ -632,9 +632,10 @@ export default function CustomerDetail() {
                       </div>
 
                       {/* Stats Grid */}
-                      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                         <div className="border border-emerald-500/10 rounded-2xl p-4 bg-white flex flex-col justify-between shadow-sm">
                           <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Total Yoga Session</p>
+                          <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Total Yoga &amp; Fitness</p>
                           <h3 className="font-display font-black text-xl text-emerald-600 mt-1.5">{stats.totalYoga ? `${stats.totalYoga} min` : '0 min'}</h3>
                         </div>
                         <div className="border border-purple-500/10 rounded-2xl p-4 bg-white flex flex-col justify-between shadow-sm">
@@ -648,10 +649,6 @@ export default function CustomerDetail() {
                         <div className="border border-indigo-500/10 rounded-2xl p-4 bg-white flex flex-col justify-between shadow-sm">
                           <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Average Sleep Duration</p>
                           <h3 className="font-display font-black text-xl text-indigo-600 mt-1.5">{stats.avgSleep ? `${stats.avgSleep} hrs` : '0 hrs'}</h3>
-                        </div>
-                        <div className="border border-orange-500/10 rounded-2xl p-4 bg-white flex flex-col justify-between shadow-sm">
-                          <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Total Protein Consumed</p>
-                          <h3 className="font-display font-black text-xl text-orange-600 mt-1.5">{stats.totalProtein ? `${stats.totalProtein} g` : '0 g'}</h3>
                         </div>
                       </div>
 
@@ -745,27 +742,6 @@ export default function CustomerDetail() {
                           </div>
                         </div>
 
-                        {/* Protein logs chart */}
-                        <div className="bg-white border border-border rounded-[2rem] p-5 shadow-sm">
-                          <h4 className="font-display font-extrabold text-xs text-gray-800 uppercase tracking-widest mb-4">Protein intake (grams)</h4>
-                          <div className="h-64">
-                            <ResponsiveContainer width="100%" height="100%">
-                              <AreaChart data={stats.proteinData}>
-                                <defs>
-                                  <linearGradient id="proteinGrad" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor="#F97316" stopOpacity={0.25} />
-                                    <stop offset="95%" stopColor="#F97316" stopOpacity={0.0} />
-                                  </linearGradient>
-                                </defs>
-                                <CartesianGrid strokeDasharray="3 3" stroke="#F0F0F0" />
-                                <XAxis dataKey="day" stroke="#9CA3AF" fontSize={10} tickLine={false} />
-                                <YAxis stroke="#9CA3AF" fontSize={10} tickLine={false} />
-                                <Tooltip content={<CustomTooltip unit="grams" />} />
-                                <Area type="monotone" dataKey="val" stroke="#F97316" strokeWidth={2} fillOpacity={1} fill="url(#proteinGrad)" />
-                              </AreaChart>
-                            </ResponsiveContainer>
-                          </div>
-                        </div>
                       </div>
                     </>
                   )}
@@ -790,14 +766,14 @@ export default function CustomerDetail() {
                         const isUnlocked = dayNum <= customerDayNum;
                         
                         const dayLogs = customerTasks.filter((l) => l.dayNumber === dayNum);
-                        const completedCount = ['yoga', 'meditation', 'water', 'protein', 'sleep'].filter((taskId) => {
+                        const completedCount = TASK_ORDER.filter((taskId) => {
                           const log = dayLogs.find((l) => l.taskId === taskId);
                           return isTaskCompleted(taskId, log, dayNum, customerDayNum);
                         }).length;
 
                         let bgStyle = 'bg-white text-gray-900 border-border hover:border-brand-300';
                         if (!isUnlocked) bgStyle = 'bg-gray-50 text-gray-300 border-gray-100 cursor-not-allowed';
-                        else if (completedCount === 5) bgStyle = 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100/50';
+                        else if (completedCount === TASK_ORDER.length) bgStyle = 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100/50';
                         else if (completedCount > 0) bgStyle = 'bg-brand-50/40 text-brand-700 border-brand-100 hover:bg-brand-50/80';
 
                         const isSelected = selectedTaskDay === dayNum;
@@ -813,7 +789,7 @@ export default function CustomerDetail() {
                           >
                             <span className="text-xs leading-none">D{dayNum}</span>
                             {isUnlocked && (
-                              <span className="text-[8px] mt-1 opacity-75 font-mono">{completedCount}/5</span>
+                              <span className="text-[8px] mt-1 opacity-75 font-mono">{completedCount}/{TASK_ORDER.length}</span>
                             )}
                           </button>
                         );

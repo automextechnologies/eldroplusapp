@@ -2,7 +2,7 @@ export function isTaskCompleted(taskId, log, dayNumber, currentDayNumber) {
   if (!log) return false;
 
   if (taskId === 'yoga' || taskId === 'meditation' || taskId === 'sleep') {
-    return log.completed === true;
+    return log.completed === true || log.completed === 1 || (log.amount !== undefined && Number(log.amount) > 0);
   }
 
   if (taskId === 'water') {
@@ -11,7 +11,7 @@ export function isTaskCompleted(taskId, log, dayNumber, currentDayNumber) {
     if (dayNumber === currentDayNumber) {
       return false;
     }
-    return log.amount >= 2500;
+    return Number(log.amount) >= 2500;
   }
 
   if (taskId === 'protein') {
@@ -20,7 +20,7 @@ export function isTaskCompleted(taskId, log, dayNumber, currentDayNumber) {
     if (dayNumber === currentDayNumber) {
       return false;
     }
-    return log.amount >= 60;
+    return Number(log.amount) >= 60;
   }
 
   return false;

@@ -41,7 +41,7 @@ export default function PreviousDaySummary({ currentDayNumber }) {
       >
         <div>
           <p className="font-display font-700 text-gray-900 text-sm">Yesterday · Day {prevDay}</p>
-          <p className="text-xs text-muted">{completedCount} of 5 tasks completed</p>
+          <p className="text-xs text-muted">{completedCount} of {TASK_ORDER.length} tasks completed</p>
         </div>
         <svg
           className={`w-5 h-5 text-gray-400 transition-transform ${expanded ? 'rotate-180' : ''}`}

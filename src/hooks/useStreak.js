@@ -2,7 +2,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import db from '../db/dexie';
 import { isTaskCompleted } from '../utils/taskCompletion';
 
-const REQUIRED = ['yoga', 'meditation', 'water', 'protein'];
+const REQUIRED = ['yoga', 'meditation', 'water'];
 
 export function useStreak(currentDayNumber) {
   const taskLogs = useLiveQuery(() => db.taskLogs.toArray(), []);

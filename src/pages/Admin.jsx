@@ -1043,7 +1043,7 @@ export default function Admin() {
     };
 
     const customerDayNum = getCurrentDayNumberLocal(user.startDate);
-    const REQUIRED = ['yoga', 'meditation', 'water', 'protein'];
+    const REQUIRED = ['yoga', 'meditation', 'water'];
 
     // Streak
     let streak = 0;
@@ -1061,7 +1061,7 @@ export default function Admin() {
     let completedDaysCount = 0;
     for (let d = 1; d <= 30; d++) {
       const dayLogs = logs.filter((l) => l.dayNumber === d);
-      const allDone = ['yoga', 'meditation', 'water', 'protein', 'sleep'].every((taskId) => {
+      const allDone = TASK_ORDER.every((taskId) => {
         const log = dayLogs.find((l) => l.taskId === taskId);
         return isTaskCompleted(taskId, log, d, customerDayNum);
       });
@@ -2578,6 +2578,7 @@ export default function Admin() {
                         <option value="general">General Wellness</option>
                         <option value="water">Water Reminder</option>
                         <option value="yoga">Yoga Session</option>
+                        <option value="yoga">Yoga &amp; Fitness</option>
                         <option value="meditation">Meditation</option>
                         <option value="protein">Protein Log</option>
                       </select>
@@ -2812,6 +2813,7 @@ export default function Admin() {
                   >
                     <option value="water">💧 Water Reminder</option>
                     <option value="yoga">🧘 Yoga Session</option>
+                    <option value="yoga">🧘 Yoga &amp; Fitness</option>
                     <option value="meditation">🧠 Meditation</option>
                     <option value="protein">🥗 Protein Log</option>
                     <option value="general">✨ General Wellness</option>
@@ -3392,7 +3394,7 @@ export default function Admin() {
                     name="items"
                     value={packageFormData.items}
                     onChange={handlePackageInputChange}
-                    placeholder="e.g. Daily yoga class, Meditation audio, Nutrition counseling"
+                    placeholder="e.g. Daily yoga & fitness class, Meditation audio, Nutrition counseling"
                     rows={3}
                     className="w-full rounded-2xl border border-border bg-[#FAFAFA] px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-400/40 focus:border-brand-500 transition-all text-gray-900 resize-none"
                   />
@@ -3523,7 +3525,7 @@ export default function Admin() {
                   name="requestedConsultations"
                   value={ticketFormData.requestedConsultations}
                   onChange={handleTicketInputChange}
-                  placeholder="e.g. Dietician call, Yoga trainer session"
+                  placeholder="e.g. Dietician call, Yoga & fitness trainer session"
                   className="w-full rounded-2xl border border-border bg-[#FAFAFA] px-4 py-3 text-sm focus:outline-none text-gray-900"
                 />
               </div>
@@ -3709,9 +3711,10 @@ export default function Admin() {
                       </div>
 
                       {/* Stats Overview */}
-                      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                         <div className="border border-emerald-500/10 rounded-2xl p-4 bg-white flex flex-col justify-between shadow-sm">
                           <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Total Yoga Session</p>
+                          <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Total Yoga &amp; Fitness</p>
                           <h3 className="font-display font-black text-xl text-emerald-600 mt-1.5">{stats.totalYoga ? `${stats.totalYoga} min` : '0 min'}</h3>
                         </div>
                         <div className="border border-purple-500/10 rounded-2xl p-4 bg-white flex flex-col justify-between shadow-sm">
@@ -3725,10 +3728,6 @@ export default function Admin() {
                         <div className="border border-indigo-500/10 rounded-2xl p-4 bg-white flex flex-col justify-between shadow-sm">
                           <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Avg Sleep Duration</p>
                           <h3 className="font-display font-black text-xl text-indigo-600 mt-1.5">{stats.avgSleep ? `${stats.avgSleep} hrs` : '0 hrs'}</h3>
-                        </div>
-                        <div className="border border-amber-500/10 rounded-2xl p-4 bg-white flex flex-col justify-between shadow-sm">
-                          <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Total Protein Logged</p>
-                          <h3 className="font-display font-black text-xl text-amber-700 mt-1.5">{stats.totalProtein ? `${stats.totalProtein} g` : '0 g'}</h3>
                         </div>
                       </div>
 
@@ -3800,27 +3799,6 @@ export default function Admin() {
                           </div>
                         </div>
 
-                        {/* Protein Trend */}
-                        <div className="border border-border rounded-3xl p-5 bg-white shadow-sm space-y-3">
-                          <p className="text-xs font-bold text-amber-600 uppercase tracking-widest flex items-center gap-1.5">Protein trend</p>
-                          <div className="h-36">
-                            <ResponsiveContainer width="100%" height="100%">
-                              <AreaChart data={stats.proteinData} margin={{ top: 5, right: 0, left: -25, bottom: 0 }}>
-                                <defs>
-                                  <linearGradient id="cProtein" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor="#ea580c" stopOpacity={0.15}/>
-                                    <stop offset="95%" stopColor="#ea580c" stopOpacity={0}/>
-                                  </linearGradient>
-                                </defs>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F3F4F6" />
-                                <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: '#6b7280' }} />
-                                <YAxis tickFormatter={(val) => `${val}g`} axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: '#6b7280' }} />
-                                <Tooltip content={<CustomTooltip unit="g" />} cursor={{ stroke: '#F3F4F6', strokeWidth: 1 }} />
-                                <Area connectNulls={true} type="monotone" dataKey="val" stroke="#ea580c" strokeWidth={2.5} fillOpacity={1} fill="url(#cProtein)" dot={{ r: 2, stroke: '#ea580c', strokeWidth: 1.5, fill: '#ffffff' }} />
-                              </AreaChart>
-                            </ResponsiveContainer>
-                          </div>
-                        </div>
 
                         {/* Sleep Trend */}
                         <div className="border border-border rounded-3xl p-5 bg-white shadow-sm space-y-3">
@@ -3873,7 +3851,7 @@ export default function Admin() {
                               return isTaskCompleted(taskId, log, dayNum, customerDayNum);
                             }).length;
                             
-                            const REQUIRED = ['yoga', 'meditation', 'water', 'protein'];
+                            const REQUIRED = ['yoga', 'meditation', 'water'];
                             const isComplete = REQUIRED.every(t => {
                               const log = dayLogs.find(l => l.taskId === t);
                               return isTaskCompleted(t, log, dayNum, customerDayNum);
@@ -3898,7 +3876,7 @@ export default function Admin() {
                                 }`}
                               >
                                 <span className="text-xs font-black">Day {dayNum}</span>
-                                <span className="text-[10px] font-bold mt-1.5 opacity-80">{completedCount}/5 done</span>
+                                <span className="text-[10px] font-bold mt-1.5 opacity-80">{completedCount}/{TASK_ORDER.length} done</span>
                               </button>
                             );
                           })}
@@ -3918,14 +3896,14 @@ export default function Admin() {
                         </div>
 
                         <div className="space-y-3">
-                          {['yoga', 'meditation', 'water', 'protein', 'sleep'].map((taskId) => {
+                          {TASK_ORDER.map((taskId) => {
                             const isRequired = taskId !== 'sleep';
                             const log = customerTasks.find(l => l.dayNumber === selectedTaskDay && l.taskId === taskId) || { completed: false, amount: 0 };
                             const isCompleted = isTaskCompleted(taskId, log, selectedTaskDay, customerDayNum);
                             const isTodayHydration = selectedTaskDay === customerDayNum && (taskId === 'water' || taskId === 'protein');
 
                             const titles = {
-                              yoga: 'Yoga (Minutes)',
+                              yoga: 'Yoga & Fitness (Minutes)',
                               meditation: 'Meditation (Minutes)',
                               water: 'Water (ml)',
                               protein: 'Protein (g)',

@@ -123,11 +123,13 @@ export default function Dashboard() {
     );
   }
 
-  const isChallengeStarted = user.batchId ? (user.startDate ? isDayUnlocked(1, user.startDate) : false) : !!user.challengeStarted;
+  const isChallengeStarted = user?.startDate
+    ? isDayUnlocked(1, user.startDate)
+    : (user?.batchId ? false : !!user?.challengeStarted);
 
   // Filter logs for today
   const todayDateString = format(new Date(), 'yyyy-MM-dd');
-  const todayLogs = allLogs.filter((l) => l.date === todayDateString);
+  const todayLogs = allLogs.filter((l) => Number(l.dayNumber) === Number(currentDayNumber) || l.date === todayDateString);
   const todayLogMap = {};
   todayLogs.forEach((l) => {
     todayLogMap[l.taskId] = l;
@@ -138,7 +140,7 @@ export default function Dashboard() {
     return isTaskCompleted(t, log, currentDayNumber, currentDayNumber);
   }).length;
 
-  const todayProgressPercent = (completedTodayCount / 5) * 100;
+  const todayProgressPercent = (completedTodayCount / TASK_ORDER.length) * 100;
 
   // Stats calculation over allLogs
   function getCumStat(taskId, avg = false) {
@@ -150,8 +152,14 @@ export default function Dashboard() {
 
   const totalWater = getCumStat('water');
   const totalYoga = getCumStat('yoga');
+  const totalMeditation = getCumStat('meditation');
   const avgSleep = getCumStat('sleep', true);
   const totalProtein = getCumStat('protein');
+  // const totalProtein = getCumStat('protein');
+
+  const avgYoga = getCumStat('yoga', true);
+  const avgMeditation = getCumStat('meditation', true);
+  const avgWater = getCumStat('water', true);
 
   // Days completed (all 5 tasks completed)
   let completedDaysCount = 0;
@@ -183,6 +191,7 @@ export default function Dashboard() {
   const waterData = getChartData('water');
   const yogaData = getChartData('yoga');
   const proteinData = getChartData('protein');
+  // const proteinData = getChartData('protein');
   const meditationData = getChartData('meditation');
 
   const CustomTooltip = ({ active, payload, label, unit }) => {
@@ -282,7 +291,7 @@ export default function Dashboard() {
               </div>
               <div className="text-right">
                 <span className="inline-block bg-brand-500/10 text-brand-700 border border-brand-500/20 px-3 py-1 rounded-xl text-xs font-bold font-mono">
-                  {completedTodayCount} / 5 Logged
+                  {completedTodayCount} / {TASK_ORDER.length} Logged
                 </span>
               </div>
             </div>
@@ -345,13 +354,12 @@ export default function Dashboard() {
             </div>
 
             {/* Total Stats Grid */}
-            <div className="md:col-span-2 grid grid-cols-2 gap-4">
-              <StatCard icon={TASK_CONFIG.yoga.icon} label="Yoga Total" value={totalYoga ? `${totalYoga}m` : null} colorClass="text-emerald-500" borderColor="border-emerald-500/10" />
+            <div className="md:col-span-2 grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <StatCard icon={TASK_CONFIG.yoga.icon} label="Yoga & Fitness Total" value={totalYoga ? `${totalYoga}m` : null} colorClass="text-emerald-500" borderColor="border-emerald-500/10" />
+              <StatCard icon={TASK_CONFIG.meditation.icon} label="Meditation Total" value={totalMeditation ? `${totalMeditation}m` : null} colorClass="text-purple-500" borderColor="border-purple-500/10" />
               <StatCard icon={TASK_CONFIG.water.icon} label="Water Total" value={totalWater ? totalWater >= 1000 ? `${(totalWater/1000).toFixed(1)}L` : `${totalWater}ml` : null} colorClass="text-cyan-500" borderColor="border-cyan-500/10" />
-              <StatCard icon={TASK_CONFIG.protein.icon} label="Protein Total" value={totalProtein ? `${totalProtein}g` : null} colorClass="text-amber-600" borderColor="border-amber-500/10" />
               <StatCard icon={TASK_CONFIG.sleep.icon} label="Avg Sleep" value={avgSleep ? `${avgSleep}h` : null} colorClass="text-indigo-500" borderColor="border-indigo-500/10" />
             </div>
-          </div>
 
           {/* Performance Trends Section */}
           <div className="space-y-4 pt-4">
@@ -412,32 +420,6 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              {/* Protein Intake Chart */}
-              <div className="premium-card p-4 space-y-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-[11px] font-bold text-amber-600 uppercase tracking-widest flex items-center gap-1.5">
-                    {TASK_CONFIG.protein.icon} Protein Trend
-                  </span>
-                  <span className="text-xs font-bold text-gray-400">Target: 60g</span>
-                </div>
-                <div className="h-32">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={proteinData} margin={{ top: 5, right: 0, left: -25, bottom: 0 }}>
-                      <defs>
-                        <linearGradient id="cProtein" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#ea580c" stopOpacity={0.15}/>
-                          <stop offset="95%" stopColor="#ea580c" stopOpacity={0}/>
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F3F4F6" />
-                      <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: '#6b7280' }} />
-                      <YAxis tickFormatter={(val) => `${val}g`} axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: '#6b7280' }} />
-                      <Tooltip content={<CustomTooltip unit="g" />} cursor={{ stroke: '#F3F4F6', strokeWidth: 1 }} />
-                      <Area connectNulls={true} type="monotone" dataKey="val" stroke="#ea580c" strokeWidth={2.5} fillOpacity={1} fill="url(#cProtein)" dot={{ r: 2.5, stroke: '#ea580c', strokeWidth: 1.5, fill: '#ffffff' }} />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
 
               {/* Yoga Intake Chart */}
               <div className="premium-card p-4 space-y-3">
@@ -498,27 +480,29 @@ export default function Dashboard() {
             <div className="md:col-span-2 bg-white border border-border rounded-3xl p-4 flex flex-col justify-between shadow-sm">
               <div className="flex items-center justify-between border-b border-border pb-2.5 mb-2">
                 <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Overall Habit Progress</span>
-                <span className="text-[10px] text-brand-600 font-bold bg-brand-50 px-2 py-0.5 rounded-lg border border-brand-500/10">30-Day Totals</span>
+                <span className="text-[10px] text-brand-600 font-bold bg-brand-50 px-2 py-0.5 rounded-lg border border-brand-500/10">Average Performance</span>
               </div>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 text-center">
                 <div className="p-2 rounded-2xl bg-emerald-50/50 border border-emerald-100">
-                  <p className="text-[9px] text-emerald-700 font-bold uppercase">Total Yoga</p>
-                  <p className="font-display font-black text-sm text-emerald-800 mt-0.5">{totalYoga ? `${totalYoga}m` : '0m'}</p>
+                  <p className="text-[9px] text-emerald-700 font-bold uppercase">Avg Yoga &amp; Fitness</p>
+                  <p className="font-display font-black text-sm text-emerald-800 mt-0.5">{avgYoga ? `${avgYoga}m` : "0m"}</p>
+                </div>
+                <div className="p-2 rounded-2xl bg-purple-50/50 border border-purple-100">
+                  <p className="text-[9px] text-purple-700 font-bold uppercase">Avg Meditation</p>
+                  <p className="font-display font-black text-sm text-purple-800 mt-0.5">{avgMeditation ? `${avgMeditation}m` : "0m"}</p>
                 </div>
                 <div className="p-2 rounded-2xl bg-cyan-50/50 border border-cyan-100">
-                  <p className="text-[9px] text-cyan-700 font-bold uppercase">Water Hydrated</p>
-                  <p className="font-display font-black text-sm text-cyan-800 mt-0.5">{totalWater ? `${(totalWater/1000).toFixed(1)}L` : '0L'}</p>
+                  <p className="text-[9px] text-cyan-700 font-bold uppercase">Avg Water</p>
+                  <p className="font-display font-black text-sm text-cyan-800 mt-0.5">{avgWater ? (avgWater >= 1000 ? `${(avgWater/1000).toFixed(1)}L` : `${Math.round(avgWater)}ml`) : "0L"}</p>
                 </div>
                 <div className="p-2 rounded-2xl bg-indigo-50/50 border border-indigo-100">
                   <p className="text-[9px] text-indigo-700 font-bold uppercase">Avg Sleep</p>
-                  <p className="font-display font-black text-sm text-indigo-800 mt-0.5">{avgSleep ? `${avgSleep}h` : '0h'}</p>
-                </div>
-                <div className="p-2 rounded-2xl bg-orange-50/50 border border-orange-100">
-                  <p className="text-[9px] text-orange-700 font-bold uppercase">Protein Consumed</p>
-                  <p className="font-display font-black text-sm text-orange-800 mt-0.5">{totalProtein ? `${totalProtein}g` : '0g'}</p>
+                  <p className="font-display font-black text-sm text-indigo-800 mt-0.5">{avgSleep ? `${avgSleep}h` : "0h"}</p>
                 </div>
               </div>
             </div>
+
+</div>
           </div>
 
         </div>
@@ -533,7 +517,7 @@ export default function Dashboard() {
               className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 p-1"
             >
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
 
@@ -551,8 +535,8 @@ export default function Dashboard() {
                    if (deferredPrompt) {
                      deferredPrompt.prompt();
                      const { outcome } = await deferredPrompt.userChoice;
-                     if (outcome === 'accepted') {
-                       console.log('User accepted the install prompt');
+                     if (outcome === "accepted") {
+                       console.log("User accepted the install prompt");
                      }
                      window.deferredPrompt = null;
                      setDeferredPrompt(null);
@@ -566,15 +550,15 @@ export default function Dashboard() {
               </button>
             )}
 
-              <div className="mt-5 text-left border-t border-gray-100 pt-4 space-y-3">
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Install Instructions</p>
-                <p className="text-xs text-gray-500 leading-relaxed">
-                  Tap your browser menu (Share or three dots) and select <strong>"Add to Home Screen"</strong> or <strong>"Install App"</strong>.
-                </p>
-              </div>
+            <div className="mt-5 text-left border-t border-gray-100 pt-4 space-y-3">
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Install Instructions</p>
+              <p className="text-xs text-gray-500 leading-relaxed">
+                Tap your browser menu (Share or three dots) and select <strong>"Add to Home Screen"</strong> or <strong>"Install App"</strong>.
+              </p>
             </div>
           </div>
-        )}
-      </div>
-    );
-  }
+        </div>
+      )}
+    </div>
+  );
+}

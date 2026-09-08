@@ -4,9 +4,10 @@ import { TASK_CONFIG } from '../../utils/taskConfig';
 
 const STATS = [
   { taskId: 'yoga',       label: 'Yoga',      format: (v) => `${v}min` },
+  { taskId: 'yoga',       label: 'Yoga & Fitness', format: (v) => `${v}min` },
   { taskId: 'meditation', label: 'Meditation', format: (v) => `${v}min` },
   { taskId: 'water',      label: 'Water',      format: (v) => v >= 1000 ? `${(v / 1000).toFixed(1)}L` : `${v}ml` },
-  { taskId: 'protein',    label: 'Protein',    format: (v) => `${v}g` },
+  // { taskId: 'protein',    label: 'Protein',    format: (v) => `${v}g` },
   { taskId: 'sleep',      label: 'Avg Sleep',  format: (v) => `${v.toFixed(1)}h`, avg: true },
 ];
 

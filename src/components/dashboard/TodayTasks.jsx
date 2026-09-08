@@ -43,7 +43,7 @@ export default function TodayTasks({ dayNumber }) {
     const log = logMap[t];
     return isTaskCompleted(t, log, dayNumber, dayNumber);
   }).length;
-  const progress = (completedCount / 5) * 100;
+  const progress = (completedCount / TASK_ORDER.length) * 100;
 
   async function handleSubmit(taskId, data) {
     setLoading(true);
@@ -74,7 +74,7 @@ export default function TodayTasks({ dayNumber }) {
       cancelTaskReminders(taskId);
       setActiveTask(null);
 
-      if (completedCount + 1 === 5) {
+      if (completedCount + 1 === TASK_ORDER.length) {
         setTimeout(() => setConfetti(true), 300);
         setTimeout(() => setConfetti(false), 1000);
       }
@@ -102,7 +102,7 @@ export default function TodayTasks({ dayNumber }) {
       <div className="px-4 space-y-3">
         <div className="flex items-center justify-between mb-4">
           <h2 className="font-display font-700 text-gray-900">Today's Tasks</h2>
-          <span className="text-sm text-muted">{completedCount} / 5 done</span>
+          <span className="text-sm text-muted">{completedCount} / {TASK_ORDER.length} done</span>
         </div>
 
         <div className="flex gap-1 mb-4">

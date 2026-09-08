@@ -5,7 +5,7 @@ import { format } from 'date-fns';
 import db from '../db/dexie';
 import { useUserStore } from '../store/useUserStore';
 import { useApi } from '../hooks/useApi';
-import { isDayUnlocked, getUnlockDate, formatDate, formatUnlockDate } from '../utils/dateUtils';
+import { isDayUnlocked, formatDate } from '../utils/dateUtils';
 import { TASK_ORDER, TASK_CONFIG } from '../utils/taskConfig';
 import { isTaskCompleted } from '../utils/taskCompletion';
 import TaskCard from '../components/shared/TaskCard';
@@ -67,23 +67,31 @@ export default function DayDetail() {
     () => db.taskLogs.where('dayNumber').equals(dayNumber).toArray(),
     [dayNumber]
   );
+  const allLogs = useLiveQuery(() => db.taskLogs.toArray(), []);
 
-  if (!user) return null;
+  if (!user || !allLogs) return null;
 
   const isChallengeStarted = user.batchId ? (user.startDate ? isDayUnlocked(1, user.startDate) : false) : !!user.challengeStarted;
-  const isUnlocked = isChallengeStarted && isDayUnlocked(dayNumber, user.startDate);
+
+  function isDayAccessible(dNum) {
+    if (!isChallengeStarted) return false;
+    if (dNum === 1) return true;
+    for (let prev = 1; prev < dNum; prev++) {
+      const hasSleep = allLogs.some(
+        (l) => l.dayNumber === prev && l.taskId === 'sleep' && l.completed
+      );
+      if (!hasSleep) return false;
+    }
+    return true;
+  }
+
+  const isUnlocked = isDayAccessible(dayNumber);
   const isFuture = !isUnlocked;
   const isPast = isUnlocked && dayNumber < currentDayNumber;
-  const isToday = isUnlocked && dayNumber === currentDayNumber;
 
   function isTaskReadonly(taskId) {
     if (isFuture) return true;
-    if (isToday) return false;
-    // It's a past day (dayNumber < currentDayNumber)
-    if (dayNumber === currentDayNumber - 1 && taskId === 'sleep') {
-      return false; // previous day's sleep is editable
-    }
-    return true; // all other past tasks are readonly
+    return false;
   }
 
   const logMap = {};
@@ -100,13 +108,13 @@ export default function DayDetail() {
         d.setDate(d.getDate() + dayNumber - 1);
         return format(d, 'EEEE, MMM d');
       })()
-    : '';
+    : `Day ${dayNumber}`;
 
   async function handleSubmit(taskId, data) {
     setLoading(true);
     try {
       const targetDate = (() => {
-        const d = new Date(user.startDate);
+        const d = new Date(user.startDate || new Date());
         d.setDate(d.getDate() + dayNumber - 1);
         return formatDate(d);
       })();
@@ -126,7 +134,6 @@ export default function DayDetail() {
         amount: data.amount,
         unit: data.unit,
         completedAt: new Date().toISOString(),
-        forDay: data.forDay,
       };
 
       const existing = await db.taskLogs.where({ dayNumber, taskId }).first();
@@ -150,7 +157,7 @@ export default function DayDetail() {
   const editableTasks = TASK_ORDER.filter(t => !isTaskReadonly(t));
   const readonlyTasks = TASK_ORDER.filter(t => isTaskReadonly(t));
 
-  const progressPercent = (completedCount / 5) * 100;
+  const progressPercent = (completedCount / TASK_ORDER.length) * 100;
 
   return (
     <div className="min-h-screen bg-surface pb-12">
@@ -168,10 +175,10 @@ export default function DayDetail() {
           </div>
           <span
             className={`px-3 py-1.5 rounded-full text-xs font-bold font-mono tracking-wider shadow-sm transition-colors duration-300 border ${
-              completedCount === 5 ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-brand-50 text-brand-700 border-brand-200'
+              completedCount === TASK_ORDER.length ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-brand-50 text-brand-700 border-brand-200'
             }`}
           >
-            {completedCount} / 5 Done
+            {completedCount} / {TASK_ORDER.length} Done
           </span>
         </div>
       </div>
@@ -192,7 +199,7 @@ export default function DayDetail() {
                 <h2 className="font-display font-extrabold text-2xl mt-0.5 text-brand-950">Day {dayNumber} Progress</h2>
               </div>
               <div className="w-14 h-14 rounded-2xl bg-brand-500/10 flex items-center justify-center font-bold shadow-inner-sm text-brand-950">
-                {completedCount === 5 ? (
+                {completedCount === TASK_ORDER.length ? (
                   <svg className="w-8 h-8 text-brand-600 shadow-[0_0_8px_rgba(132,180,156,0.2)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138z" />
                   </svg>
@@ -216,7 +223,7 @@ export default function DayDetail() {
                 />
               </div>
               <p className="text-xs text-brand-700 font-semibold pt-1">
-                {completedCount === 5 ? 'All daily tasks completed! Exceptional work.' : 'Complete all 5 daily tasks to lock in this day.'}
+                {completedCount === TASK_ORDER.length ? 'All daily tasks completed! Exceptional work.' : `Complete all ${TASK_ORDER.length} daily tasks to lock in this day.`}
               </p>
             </div>
           </div>
@@ -256,21 +263,32 @@ export default function DayDetail() {
           </div>
         )}
 
-        {/* Future day locked card */}
+        {/* Day locked card */}
         {isChallengeStarted && isFuture && (
-          <div className="bg-white rounded-3xl border border-gray-200 p-8 text-center shadow-sm mt-6">
-            <div className="w-16 h-16 bg-gray-50 rounded-2xl mx-auto flex items-center justify-center mb-4 border border-gray-200 shadow-inner-sm text-gray-400">
-              <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+          <div className="bg-amber-50/90 border-2 border-amber-200 rounded-3xl p-8 text-center space-y-4 shadow-sm mt-6">
+            <div className="w-14 h-14 bg-amber-100 border border-amber-300 rounded-2xl mx-auto flex items-center justify-center text-amber-700">
+              <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
               </svg>
             </div>
-            <p className="font-display font-extrabold text-gray-900 text-lg">Day {dayNumber} is locked</p>
-            <p className="text-sm text-gray-500 mt-2">
-              This wellness journey page unlocks on:
-            </p>
-            <p className="inline-block mt-3 px-4 py-2 bg-brand-50 border border-brand-100 rounded-2xl text-brand-500 font-bold text-sm font-mono">
-              {formatUnlockDate(getUnlockDate(dayNumber, user.startDate))}
-            </p>
+            <div>
+              <h3 className="font-display font-extrabold text-gray-900 text-lg">Day {dayNumber} is Locked</h3>
+              <p className="text-sm font-semibold text-amber-900 mt-1.5 leading-relaxed max-w-md mx-auto">
+                Complete your previous day's Sleep Task to unlock today's tasks.
+              </p>
+            </div>
+            {dayNumber > 1 && (
+              <button
+                type="button"
+                onClick={() => navigate('/tasks')}
+                className="inline-flex items-center gap-2 px-6 py-3 bg-brand-500 hover:bg-brand-600 text-white rounded-2xl font-bold text-xs shadow-brand transition-all active:scale-95"
+              >
+                <span>Complete Day {dayNumber - 1} Sleep Task</span>
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                </svg>
+              </button>
+            )}
           </div>
         )}
 
@@ -363,9 +381,7 @@ export default function DayDetail() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <p className="text-xs text-gray-500 font-semibold">
-              {dayNumber === currentDayNumber - 1 
-                ? "Only the previous night's sleep is editable on the day after. Other tasks are finalized."
-                : "This challenge day has ended. All tasks are finalized and cannot be modified."}
+              This challenge day has ended. All tasks are finalized and cannot be modified.
             </p>
           </div>
         )}

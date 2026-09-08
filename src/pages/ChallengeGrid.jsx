@@ -11,12 +11,19 @@ import { isTaskCompleted } from '../utils/taskCompletion';
 
 function getDayStatus(dayNumber, logs, startDate, currentDayNumber) {
   if (!isDayUnlocked(dayNumber, startDate)) return 'locked';
+  if (!isDayUnlocked(1, startDate)) return 'locked';
+  if (dayNumber > 1) {
+    for (let prev = 1; prev < dayNumber; prev++) {
+      const hasSleep = logs.some((l) => l.dayNumber === prev && l.taskId === 'sleep' && l.completed);
+      if (!hasSleep) return 'locked';
+    }
+  }
   const dayLogs = logs.filter((l) => l.dayNumber === dayNumber);
   const completedCount = TASK_ORDER.filter((taskId) => {
     const log = dayLogs.find((l) => l.taskId === taskId);
     return isTaskCompleted(taskId, log, dayNumber, currentDayNumber);
   }).length;
-  const allDone = completedCount === 5;
+  const allDone = completedCount === TASK_ORDER.length;
 
   if (dayNumber === currentDayNumber) return allDone ? 'complete' : completedCount > 0 ? 'partial' : 'today';
   if (dayNumber < currentDayNumber) return allDone ? 'complete' : completedCount > 0 ? 'partial' : 'missed';
@@ -31,6 +38,7 @@ function DayBox({ dayNumber, status, progress, startDate, currentDayNumber }) {
     if (status === 'locked') {
       const unlockDate = getUnlockDate(dayNumber, startDate);
       setToast(`Day ${dayNumber} unlocks on ${formatUnlockDate(unlockDate)}`);
+      setToast("Complete your previous day's Sleep Task to unlock today's tasks.");
       setTimeout(() => setToast(''), 2500);
       return;
     }
@@ -117,7 +125,7 @@ export default function ChallengeGrid() {
       const log = dayLogs.find((l) => l.taskId === taskId);
       return isTaskCompleted(taskId, log, dayNumber, currentDayNumber);
     }).length;
-    const progress = (completedCount / 5) * 100;
+    const progress = (completedCount / TASK_ORDER.length) * 100;
     if (status === 'complete') completedDays++;
     return { dayNumber, status, progress };
   });

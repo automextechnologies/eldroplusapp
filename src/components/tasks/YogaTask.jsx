@@ -36,6 +36,7 @@ export default function YogaTask({ onSubmit, existingLog, loading }) {
       <button onClick={() => onSubmit({ amount: minutes, unit: 'min' })} disabled={loading}
         className="btn-brand" style={{ background: 'linear-gradient(135deg, #12B76A, #027A48)' }}>
         {loading ? 'Saving...' : existingLog?.completed ? '✓ Update Yoga' : 'Complete Yoga ✓'}
+        {loading ? 'Saving...' : existingLog?.completed ? '✓ Update Yoga & Fitness' : 'Complete Yoga & Fitness ✓'}
       </button>
     </div>
   );

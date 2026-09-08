@@ -47,7 +47,7 @@ export default function TaskCard({
     if (log && log.amount > 0) {
       return `${formatAmount()} logged`;
     }
-    if (taskId === 'sleep') return "Log last night's sleep";
+    if (taskId === 'sleep') return "Log sleep";
     return 'Tap to log';
   }
 

@@ -26,6 +26,7 @@ export default function AppShell() {
           <h2 className="text-xl font-display font-extrabold text-gray-900">Enable Notifications</h2>
           <p className="text-sm text-gray-500 leading-relaxed">
             Get timely reminders for your daily water intake, yoga classes, and health tracking goals on eldroplus.
+            Get timely reminders for your daily water intake, yoga &amp; fitness classes, and health tracking goals on eldroplus.
           </p>
 
           {permission === 'denied' ? (

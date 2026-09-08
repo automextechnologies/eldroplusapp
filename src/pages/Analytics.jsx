@@ -27,6 +27,8 @@ export default function Analytics() {
     const day = i + 1;
     // Sleep for day N is the log where forDay === N
     const log = logs.find((l) => l.taskId === 'sleep' && l.forDay === day);
+    // Sleep for day N is the log for that dayNumber
+    const log = logs.find((l) => l.taskId === 'sleep' && (l.dayNumber === day || l.forDay === day));
     return {
       day: `Day ${day}`,
       hours: log ? log.amount : null,

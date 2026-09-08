@@ -1,11 +1,12 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { useLiveQuery } from 'dexie-react-hooks';
 import db from '../db/dexie';
 import { useUserStore } from '../store/useUserStore';
 import { useApi } from '../hooks/useApi';
-import { formatDate, isDayUnlocked, getUnlockDate, formatUnlockDate } from '../utils/dateUtils';
-import { TASK_ORDER } from '../utils/taskConfig';
+import { formatDate, isDayUnlocked as isDayUnlockedDate } from '../utils/dateUtils';
+import { TASK_ORDER, TASK_CONFIG } from '../utils/taskConfig';
 import { isTaskCompleted } from '../utils/taskCompletion';
 import TaskCard from '../components/shared/TaskCard';
 
@@ -38,33 +39,55 @@ const PRE_RECORDED_VIDEOS = [
 ];
 
 export default function DailyTasks() {
+  const navigate = useNavigate();
   const user = useUserStore((s) => s.user);
   const currentDayNumber = useUserStore((s) => s.currentDayNumber)();
   const api = useApi();
 
-  const [activeDay, setActiveDay] = useState(currentDayNumber);
+  const [activeDay, setActiveDay] = useState(currentDayNumber || 1);
   const [expandedTaskId, setExpandedTaskId] = useState(null);
   const [loadingTaskId, setLoadingTaskId] = useState(null);
 
-  const horizontalScrollRef = useRef(null);
-
-  useEffect(() => {
-    if (currentDayNumber) {
-      setActiveDay(currentDayNumber);
-    }
-  }, [currentDayNumber]);
-
-  // Center horizontal scroll on active day
-  useEffect(() => {
-    if (horizontalScrollRef.current) {
-      const activeEl = horizontalScrollRef.current.querySelector('[data-active="true"]');
-      if (activeEl) {
-        activeEl.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-      }
-    }
-  }, [activeDay]);
-
   const allLogs = useLiveQuery(() => db.taskLogs.toArray(), []);
+
+  const isChallengeStarted = user?.startDate
+    ? isDayUnlockedDate(1, user.startDate)
+    : (user?.batchId ? false : !!user?.challengeStarted);
+
+  // Sequential sleep-based unlock logic:
+  // Day 1 is unlocked when challenge begins.
+  // Day d (d > 1) unlocks only after all previous days 1 .. d - 1 have Sleep Task completed.
+  function isDayAccessible(dNum) {
+    if (!isChallengeStarted) return false;
+    if (dNum === 1) return true;
+    if (!allLogs) return false;
+    for (let prev = 1; prev < dNum; prev++) {
+      const hasSleep = allLogs.some(
+        (l) => Number(l.dayNumber) === prev && l.taskId === 'sleep' && (l.completed === true || l.completed === 1 || (l.amount !== undefined && Number(l.amount) > 0))
+      );
+      if (!hasSleep) return false;
+    }
+    return true;
+  }
+
+  // Set default active day to currentDayNumber if accessible, or the furthest unlocked day
+  useEffect(() => {
+    if (!allLogs || !user) return;
+    const target = currentDayNumber || 1;
+    if (isDayAccessible(target)) {
+      setActiveDay(target);
+    } else {
+      let furthest = 1;
+      for (let d = 1; d <= 30; d++) {
+        if (isDayAccessible(d)) {
+          furthest = d;
+        } else {
+          break;
+        }
+      }
+      setActiveDay(furthest);
+    }
+  }, [currentDayNumber, allLogs?.length, isChallengeStarted]);
 
   if (!user || !allLogs) {
     return (
@@ -77,25 +100,26 @@ export default function DailyTasks() {
     );
   }
 
-  const isChallengeStarted = user.batchId ? (user.startDate ? isDayUnlocked(1, user.startDate) : false) : !!user.challengeStarted;
+  const isUnlocked = isDayAccessible(activeDay);
 
-  // Active day status
-  const isUnlocked = isChallengeStarted && isDayUnlocked(activeDay, user.startDate);
-  const isFuture = !isUnlocked;
-  const isPast = isUnlocked && activeDay < currentDayNumber;
-  const isToday = isUnlocked && activeDay === currentDayNumber;
+  // Status for Days grid tiles
+  function getDayStatus(dNum) {
+    if (!isDayAccessible(dNum)) return 'locked';
+    const dLogs = allLogs.filter((l) => Number(l.dayNumber) === dNum);
+    const doneCount = TASK_ORDER.filter((taskId) => {
+      const log = dLogs.find((l) => l.taskId === taskId);
+      return isTaskCompleted(taskId, log, dNum, currentDayNumber);
+    }).length;
+    const allDone = doneCount === TASK_ORDER.length;
 
-  function isTaskReadonly(taskId) {
-    if (isFuture) return true;
-    if (isToday) return false;
-    if (activeDay === currentDayNumber - 1 && taskId === 'sleep') {
-      return false; // yesterday's sleep can be logged today
-    }
-    return true;
+    if (allDone) return 'complete';
+    if (doneCount > 0) return 'partial';
+    if (dNum === currentDayNumber) return 'today';
+    return 'unlocked';
   }
 
-  // Active day logs
-  const activeDayLogs = allLogs.filter((l) => l.dayNumber === activeDay);
+  // Active day logs & progress calculation (exclusive to activeDay)
+  const activeDayLogs = allLogs.filter((l) => Number(l.dayNumber) === Number(activeDay));
   const logMap = {};
   activeDayLogs.forEach((l) => {
     logMap[l.taskId] = l;
@@ -106,7 +130,7 @@ export default function DailyTasks() {
     return isTaskCompleted(t, log, activeDay, currentDayNumber);
   }).length;
 
-  const activeProgressPercent = (completedCount / 5) * 100;
+  const activeProgressPercent = (completedCount / TASK_ORDER.length) * 100;
 
   const activeDayDate = user.startDate
     ? (() => {
@@ -114,36 +138,51 @@ export default function DailyTasks() {
         d.setDate(d.getDate() + activeDay - 1);
         return format(d, 'EEEE, MMM d');
       })()
-    : '';
+    : `Day ${activeDay}`;
+
+  // Find the exact missing previous day that locks activeDay (for action button)
+  const missingPreviousSleepDay = (() => {
+    if (isUnlocked || activeDay <= 1) return null;
+    for (let d = 1; d < activeDay; d++) {
+      const hasSleep = allLogs.some(
+        (l) => Number(l.dayNumber) === d && l.taskId === 'sleep' && (l.completed === true || l.completed === 1 || (l.amount !== undefined && Number(l.amount) > 0))
+      );
+      if (!hasSleep) return d;
+    }
+    return activeDay - 1;
+  })();
 
   async function handleLogSubmit(taskId, data) {
     setLoadingTaskId(taskId);
     try {
       const targetDate = (() => {
-        const d = new Date(user.startDate);
+        const d = new Date(user.startDate || new Date());
         d.setDate(d.getDate() + activeDay - 1);
         return formatDate(d);
       })();
 
       let completed = true;
       if (taskId === 'water') {
-        completed = activeDay === currentDayNumber ? false : data.amount >= 2500;
+        completed = activeDay === currentDayNumber ? false : Number(data.amount) >= 2500;
       } else if (taskId === 'protein') {
-        completed = activeDay === currentDayNumber ? false : data.amount >= 60;
+        completed = activeDay === currentDayNumber ? false : Number(data.amount) >= 60;
+      } else if (taskId === 'sleep' || taskId === 'yoga' || taskId === 'meditation') {
+        completed = Number(data.amount) > 0;
       }
 
       const optimisticLog = {
-        dayNumber: activeDay,
+        dayNumber: Number(activeDay),
         taskId,
         date: targetDate,
         completed,
-        amount: data.amount,
+        amount: Number(data.amount) || 0,
         unit: data.unit,
         completedAt: new Date().toISOString(),
-        forDay: data.forDay,
       };
 
-      const existing = await db.taskLogs.where({ dayNumber: activeDay, taskId }).first();
+      const existing = await db.taskLogs.where('[dayNumber+taskId]').equals([Number(activeDay), taskId]).first()
+        || await db.taskLogs.filter(l => Number(l.dayNumber) === Number(activeDay) && l.taskId === taskId).first();
+
       if (existing) {
         await db.taskLogs.update(existing.id, optimisticLog);
       } else {
@@ -152,7 +191,13 @@ export default function DailyTasks() {
 
       setExpandedTaskId(null);
 
-      api.post('/api/tasks/log', { dayNumber: activeDay, taskId, ...data, completed, date: targetDate }).catch(() => {});
+      api.post('/api/tasks/log', {
+        dayNumber: Number(activeDay),
+        taskId,
+        ...data,
+        completed,
+        date: targetDate,
+      }).catch(() => {});
     } catch (e) {
       console.error(e);
     } finally {
@@ -160,61 +205,8 @@ export default function DailyTasks() {
     }
   }
 
-  function getDayStatus(dNum) {
-    if (!isDayUnlocked(dNum, user.startDate)) return 'locked';
-    const dLogs = allLogs.filter((l) => l.dayNumber === dNum);
-    const doneCount = TASK_ORDER.filter((taskId) => {
-      const log = dLogs.find((l) => l.taskId === taskId);
-      return isTaskCompleted(taskId, log, dNum, currentDayNumber);
-    }).length;
-    const allDone = doneCount === 5;
-
-    if (dNum === currentDayNumber) return allDone ? 'complete' : doneCount > 0 ? 'partial' : 'today';
-    if (dNum < currentDayNumber) return allDone ? 'complete' : doneCount > 0 ? 'partial' : 'missed';
-    return 'unlocked';
-  }
-
   return (
-    <div className="min-h-screen bg-surface flex flex-col pb-12">
-      {/* Mobile Horizontal Day Timeline */}
-      <div 
-        ref={horizontalScrollRef}
-        className="flex lg:hidden gap-2 overflow-x-auto no-scrollbar py-3 px-4 bg-white/60 border-b border-gray-200 sticky top-0 z-30 backdrop-blur-md"
-      >
-        {Array.from({ length: 30 }, (_, i) => {
-          const dNum = i + 1;
-          const dStatus = getDayStatus(dNum);
-          const isActive = activeDay === dNum;
-          
-          return (
-            <button
-              key={dNum}
-              data-active={isActive}
-              onClick={() => {
-                setActiveDay(dNum);
-                setExpandedTaskId(null);
-              }}
-              className={`flex-shrink-0 w-11 h-11 rounded-xl flex flex-col items-center justify-center relative transition-all active:scale-95 ${
-                isActive 
-                  ? 'border-2 border-brand-500 bg-brand-50 text-brand-600 font-black' 
-                  : dStatus === 'locked'
-                  ? 'border border-dashed border-gray-200 text-gray-300 bg-gray-50'
-                  : dStatus === 'complete'
-                  ? 'border border-emerald-500/30 bg-emerald-50/50 text-emerald-600'
-                  : dStatus === 'missed'
-                  ? 'border border-red-500/20 bg-red-50/50 text-red-500'
-                  : 'border border-gray-200 bg-white text-gray-400 shadow-sm'
-              }`}
-            >
-              <span className="text-[10px] font-bold leading-none">{dNum}</span>
-              {dStatus === 'complete' && <span className="absolute bottom-1 w-1 h-1 rounded-full bg-emerald-500" />}
-              {dStatus === 'missed' && <span className="absolute bottom-1 w-1 h-1 rounded-full bg-red-500" />}
-              {dStatus === 'today' && <span className="absolute bottom-1 w-1.5 h-1.5 rounded-full bg-brand-500 animate-ping" />}
-            </button>
-          );
-        })}
-      </div>
-
+    <div className="min-h-screen bg-surface flex flex-col pb-20">
       {!isChallengeStarted ? (
         <div className="max-w-md mx-auto px-4 py-12 text-center w-full">
           <div className="bg-white rounded-3xl border border-gray-200 p-8 shadow-card">
@@ -236,7 +228,7 @@ export default function DailyTasks() {
             ) : (
               <>
                 <p className="text-sm text-gray-500 mt-2">
-                  You are assigned to the **{user.packageId?.name || 'Tester Pack'}** package. Please start the challenge on your profile page to begin.
+                  Please start the challenge on your profile page to begin.
                 </p>
                 <button
                   onClick={() => navigate('/settings')}
@@ -249,182 +241,263 @@ export default function DailyTasks() {
           </div>
         </div>
       ) : (
-        <div className="flex-1 max-w-5xl mx-auto w-full px-4 py-6 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          {/* Desktop Vertical Roadmap timeline (lg:col-span-4 hidden lg:block) */}
-          <aside className="lg:col-span-4 hidden lg:block bg-white border border-gray-200 rounded-3xl p-4 sticky top-6 h-[80vh] overflow-y-auto no-scrollbar shadow-sm">
-            <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest px-2 mb-4">Journey Roadmap</h3>
-            <div className="relative border-l-2 border-gray-200 ml-4 pl-6 space-y-4 py-2">
-              {Array.from({ length: 30 }, (_, i) => {
-                const dNum = i + 1;
-                const dStatus = getDayStatus(dNum);
-                const isActive = activeDay === dNum;
-
-                return (
-                  <button
-                    key={dNum}
-                    onClick={() => {
-                      setActiveDay(dNum);
-                      setExpandedTaskId(null);
-                    }}
-                    className="flex items-center gap-3 text-left w-full relative group"
-                  >
-                    <div className={`absolute -left-[33px] w-4 h-4 rounded-full border-2 transition-all flex items-center justify-center ${
-                      isActive 
-                        ? 'border-brand-500 bg-white scale-125 shadow-[0_0_8px_rgba(132,180,156,0.35)]' 
-                        : dStatus === 'locked'
-                        ? 'border-dashed border-gray-300 bg-white'
-                        : dStatus === 'complete'
-                        ? 'border-emerald-500 bg-emerald-500'
-                        : dStatus === 'missed'
-                        ? 'border-red-500 bg-red-100'
-                        : 'border-gray-200 bg-white'
-                    }`}
-                    >
-                      {dStatus === 'complete' && (
-                        <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                        </svg>
-                      )}
-                    </div>
-
-                    <div className={`flex-1 px-3 py-2 rounded-xl transition-all ${
-                      isActive 
-                        ? 'bg-brand-50 border border-brand-500/20' 
-                        : 'hover:bg-gray-50 border border-transparent'
-                    }`}>
-                      <p className={`text-xs font-extrabold leading-none ${isActive ? 'text-brand-600' : 'text-gray-600 group-hover:text-gray-900'}`}>
-                        Day {dNum}
-                      </p>
-                      <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mt-1.5">
-                        {dStatus === 'locked' ? 'Locked' : dStatus === 'complete' ? 'Completed' : dStatus === 'missed' ? 'Missed' : 'Open'}
-                      </p>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </aside>
-
-          {/* Selected active day Workspace (lg:col-span-8) */}
-          <main className="col-span-1 lg:col-span-8 space-y-6">
-            <div 
-              className="rounded-3xl p-6 text-brand-950 relative overflow-hidden shadow-sm border border-brand-500/10"
-              style={{ background: 'linear-gradient(135deg, #F2F8F4 0%, #b4d8c0 100%)' }}
-            >
-              <div className="absolute -top-12 -right-12 w-36 h-36 rounded-full bg-white/10 blur-md pointer-events-none" />
-              <div className="relative flex justify-between items-start">
+        <div className="flex-1 max-w-6xl mx-auto w-full px-4 py-6">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            
+            {/* 1. DAYS SECTION (5-column Grid matching screenshot) */}
+            <section className="order-2 lg:order-1 col-span-1 lg:col-span-5 bg-white border border-gray-200/90 rounded-3xl p-5 shadow-sm space-y-4">
+              <div className="flex items-center justify-between pb-1 border-b border-gray-100">
                 <div>
-                  <p className="text-brand-600 text-[10px] font-extrabold tracking-widest uppercase">Workspace</p>
-                  <h2 className="font-display font-extrabold text-2xl mt-0.5 text-brand-950">Day {activeDay}</h2>
-                  <p className="text-xs text-brand-700 font-semibold mt-1">{activeDayDate}</p>
+                  <h3 className="font-display font-extrabold text-gray-900 text-base">Challenge Days</h3>
+                  <p className="text-[11px] font-semibold text-gray-400">Select a day to view & log tasks</p>
                 </div>
-                <div className={`px-2.5 py-1.5 rounded-lg text-[10px] font-bold font-mono tracking-wider border ${
-                  completedCount === 5 ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-brand-500/10 border-brand-500/20 text-brand-700'
-                }`}>
-                  {completedCount} / 5 Done
-                </div>
+                <span className="text-[10px] font-bold font-mono px-2.5 py-1 rounded-full bg-brand-50 text-brand-700 border border-brand-200/60">
+                  Day {activeDay} of 30
+                </span>
               </div>
 
-              {!isFuture && (
-                <div className="relative mt-6 space-y-1.5">
-                  <div className="flex justify-between text-xs font-bold text-brand-950">
-                    <span>PROGRESS LOGGED</span>
-                    <span className="font-mono">{Math.round(activeProgressPercent)}%</span>
+              {/* 5-Column Squircle Days Grid */}
+              <div className="grid grid-cols-5 gap-2.5 sm:gap-3">
+                {Array.from({ length: 30 }, (_, i) => {
+                  const dNum = i + 1;
+                  const dStatus = getDayStatus(dNum);
+                  const isActive = activeDay === dNum;
+                  const isLocked = dStatus === 'locked';
+
+                  return (
+                    <button
+                      key={dNum}
+                      type="button"
+                      onClick={() => {
+                        setActiveDay(dNum);
+                        setExpandedTaskId(null);
+                        if (window.innerWidth < 1024) {
+                          window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }
+                      }}
+                      className={`aspect-square w-full rounded-2xl flex flex-col items-center justify-center relative transition-all duration-200 select-none ${
+                        isActive
+                          ? 'ring-4 ring-brand-500/80 ring-offset-2 scale-105 shadow-md z-10'
+                          : 'hover:scale-[1.02] active:scale-95'
+                      } ${
+                        isLocked
+                          ? 'bg-[#709ba6]/60 text-white/80 opacity-75 shadow-sm'
+                          : dStatus === 'complete'
+                          ? 'bg-[#408a73] text-white shadow-sm'
+                          : 'bg-[#568796] text-white shadow-sm'
+                      }`}
+                      style={{
+                        borderRadius: '1.15rem',
+                      }}
+                    >
+                      <span className="font-display font-extrabold text-base sm:text-xl leading-none">
+                        {dNum}
+                      </span>
+
+                      {/* Locked icon indicator */}
+                      {isLocked && (
+                        <svg className="w-3 h-3 text-white/80 absolute bottom-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.6}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                        </svg>
+                      )}
+
+                      {/* Completed checkmark badge */}
+                      {dStatus === 'complete' && (
+                        <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-emerald-300 ring-2 ring-[#408a73]" />
+                      )}
+
+                      {/* Current day indicator */}
+                      {dStatus === 'today' && !isLocked && (
+                        <span className="absolute bottom-1.5 w-1.5 h-1.5 rounded-full bg-amber-300 animate-pulse" />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Legend */}
+              <div className="flex items-center justify-center gap-4 pt-2 text-[10px] font-bold text-gray-400">
+                <span className="flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-md bg-[#568796]" /> Open
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-md bg-[#408a73]" /> Completed
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-md bg-[#709ba6]/60" /> Locked
+                </span>
+              </div>
+            </section>
+
+            {/* 2. ACTIVE DAY SECTION & TASK LIST */}
+            <main className="order-1 lg:order-2 col-span-1 lg:col-span-7 space-y-5">
+              
+              {/* Day Header & Progress Card */}
+              <div
+                className="rounded-3xl p-6 text-brand-950 relative overflow-hidden shadow-sm border border-brand-500/15"
+                style={{ background: 'linear-gradient(135deg, #F2F8F4 0%, #c1e2cb 100%)' }}
+              >
+                <div className="flex justify-between items-start">
+                  <div>
+                    <p className="text-brand-600 text-[10px] font-extrabold tracking-widest uppercase">
+                      Workspace · Day {activeDay}
+                    </p>
+                    <h2 className="font-display font-extrabold text-2xl mt-0.5 text-brand-950">
+                      Day {activeDay}
+                    </h2>
+                    <p className="text-xs text-brand-800/80 font-semibold mt-0.5">
+                      {activeDayDate}
+                    </p>
                   </div>
-                  <div className="h-2.5 bg-brand-500/15 rounded-full overflow-hidden">
-                    <div 
-                      className="h-full bg-gradient-to-r from-brand-500 to-brand-600 rounded-full transition-all duration-500 shadow-[0_0_8px_rgba(132,180,156,0.35)]"
+
+                  <div className={`px-3 py-1 rounded-xl text-[11px] font-bold font-mono tracking-wider border shadow-xs ${
+                    !isUnlocked
+                      ? 'bg-amber-50 border-amber-200 text-amber-800'
+                      : completedCount === TASK_ORDER.length
+                      ? 'bg-emerald-100 border-emerald-300 text-emerald-800'
+                      : 'bg-white/80 border-brand-500/30 text-brand-800'
+                  }`}>
+                    {!isUnlocked ? '🔒 Locked' : `${completedCount} / ${TASK_ORDER.length} Done`}
+                  </div>
+                </div>
+
+                {/* Day Task Progress Inside Day Section */}
+                <div className="mt-5 space-y-2">
+                  <div className="flex justify-between items-center text-xs font-bold text-brand-950">
+                    <span className="tracking-wide uppercase text-[11px] text-brand-900/80">
+                      Day {activeDay} Progress
+                    </span>
+                    <span className="font-mono text-brand-950 font-extrabold">
+                      {Math.round(activeProgressPercent)}%
+                    </span>
+                  </div>
+
+                  <div className="h-3 bg-white/60 rounded-full overflow-hidden p-0.5 border border-brand-500/20">
+                    <div
+                      className="h-full bg-gradient-to-r from-brand-500 to-brand-600 rounded-full transition-all duration-500 shadow-xs"
                       style={{ width: `${activeProgressPercent}%` }}
                     />
                   </div>
-                </div>
-              )}
 
-              {isFuture && (
-                <div className="mt-5 flex items-center gap-2 p-2.5 bg-brand-500/10 rounded-xl border border-brand-500/20 text-xs text-brand-700">
-                  <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
-                  </svg>
-                  <span>Unlocks {formatUnlockDate(getUnlockDate(activeDay, user.startDate))}</span>
+                  {/* Task icons completion summary */}
+                  <div className="flex items-center gap-2 pt-2">
+                    {TASK_ORDER.map((tId) => {
+                      const isDone = isTaskCompleted(tId, logMap[tId], activeDay, currentDayNumber);
+                      const cfg = TASK_CONFIG[tId];
+                      return (
+                        <div
+                          key={tId}
+                          title={`${cfg?.label || tId}: ${isDone ? 'Completed' : 'Pending'}`}
+                          className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all ${
+                            isDone
+                              ? 'bg-emerald-500 text-white shadow-xs'
+                              : 'bg-white/70 text-gray-500 border border-brand-500/15'
+                          }`}
+                        >
+                          <span>{cfg?.icon}</span>
+                          <span className="capitalize">{cfg?.label || tId}</span>
+                          {isDone && <span>✓</span>}
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
-              )}
-            </div>
-
-            {isFuture ? (
-              <div className="bg-white rounded-3xl border border-gray-200 p-8 text-center text-gray-500 shadow-sm">
-                <svg className="w-10 h-10 text-gray-400 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
-                </svg>
-                <p className="text-sm font-bold text-gray-900">This day is locked</p>
-                <p className="text-xs text-gray-500 mt-1">Unlock date: {new Date(getUnlockDate(activeDay, user.startDate)).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</p>
               </div>
-            ) : (
-              <div className="space-y-6">
-                {!user.batchId && (
-                  <div className="bg-white rounded-3xl border border-gray-200 overflow-hidden shadow-sm space-y-4">
-                    <div className="px-6 pt-5 flex justify-between items-center">
-                      <div>
-                        <span className="px-2 py-0.5 bg-brand-50 text-brand-700 text-[10px] font-bold rounded-lg border border-brand-100 uppercase tracking-wide">
-                          Daily Class Video 📹
-                        </span>
-                        <h3 className="font-display font-extrabold text-sm text-gray-900 mt-1.5">
-                          {PRE_RECORDED_VIDEOS[(activeDay - 1) % 5].title}
-                        </h3>
-                      </div>
-                      <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider bg-gray-50 border border-gray-100 px-2 py-1 rounded">
-                        Day {activeDay} Video
-                      </span>
-                    </div>
-                    
-                    <div className="aspect-video w-full bg-black relative">
-                      <iframe
-                        className="w-full h-full"
-                        src={`https://www.youtube.com/embed/${PRE_RECORDED_VIDEOS[(activeDay - 1) % 5].youtubeId}?rel=0&modestbranding=1`}
-                        title={PRE_RECORDED_VIDEOS[(activeDay - 1) % 5].title}
-                        frameBorder="0"
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                        allowFullScreen
-                      />
-                    </div>
-                    
-                    <p className="text-xs text-gray-500 px-6 pb-5 leading-relaxed">
-                      {PRE_RECORDED_VIDEOS[(activeDay - 1) % 5].description}
+
+              {/* Locked Notice or Task Cards */}
+              {!isUnlocked ? (
+                <div className="bg-amber-50/90 border-2 border-amber-200 rounded-3xl p-8 text-center space-y-4 shadow-sm">
+                  <div className="w-14 h-14 bg-amber-100 border border-amber-300 rounded-2xl mx-auto flex items-center justify-center text-amber-700">
+                    <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="font-display font-extrabold text-gray-900 text-lg">
+                      Day {activeDay} is Locked
+                    </h3>
+                    <p className="text-sm font-semibold text-amber-900 mt-1.5 leading-relaxed max-w-md mx-auto">
+                      Complete your previous day's Sleep Task to unlock today's tasks.
                     </p>
                   </div>
-                )}
 
-                <div className="space-y-3">
-                  {TASK_ORDER.map((taskId) => (
-                  <TaskCard
-                    key={taskId}
-                    taskId={taskId}
-                    log={logMap[taskId]}
-                    dayNumber={activeDay}
-                    currentDayNumber={currentDayNumber}
-                    readonly={isTaskReadonly(taskId)}
-                    expanded={expandedTaskId === taskId}
-                    onToggleExpand={() => setExpandedTaskId(expandedTaskId === taskId ? null : taskId)}
-                    onSubmit={handleLogSubmit}
-                    loading={loadingTaskId === taskId}
-                  />
-                ))}
-              </div>
-            </div>
-          )}
+                  {activeDay > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const target = missingPreviousSleepDay || activeDay - 1;
+                        setActiveDay(target);
+                        setExpandedTaskId('sleep');
+                        if (window.innerWidth < 1024) {
+                          window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }
+                      }}
+                      className="inline-flex items-center gap-2 px-6 py-3 bg-brand-500 hover:bg-brand-600 text-white rounded-2xl font-bold text-xs shadow-brand transition-all hover:scale-[1.02] active:scale-95"
+                    >
+                      <span>Complete Day {missingPreviousSleepDay || activeDay - 1} Sleep Task</span>
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                      </svg>
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-5">
+                  {/* Daily Class Video (Non-batch users) */}
+                  {!user.batchId && (
+                    <div className="bg-white rounded-3xl border border-gray-200 overflow-hidden shadow-sm space-y-4">
+                      <div className="px-6 pt-5 flex justify-between items-center">
+                        <div>
+                          <span className="px-2 py-0.5 bg-brand-50 text-brand-700 text-[10px] font-bold rounded-lg border border-brand-100 uppercase tracking-wide">
+                            Daily Class Video 📹
+                          </span>
+                          <h3 className="font-display font-extrabold text-sm text-gray-900 mt-1.5">
+                            {PRE_RECORDED_VIDEOS[(activeDay - 1) % 5].title}
+                          </h3>
+                        </div>
+                        <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider bg-gray-50 border border-gray-100 px-2 py-1 rounded">
+                          Day {activeDay} Video
+                        </span>
+                      </div>
 
-            {isPast && (
-              <div className="bg-white rounded-2xl p-4 border border-gray-200 text-center flex items-center justify-center gap-2 shadow-sm">
-                <svg className="w-4 h-4 text-brand-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <p className="text-xs text-gray-500 font-semibold">
-                  {activeDay === currentDayNumber - 1 
-                    ? "Only yesterday's sleep can be logged. Other tasks are locked."
-                    : "This day has ended. Logs are read-only."}
-                </p>
-              </div>
-            )}
-          </main>
+                      <div className="aspect-video w-full bg-black relative">
+                        <iframe
+                          className="w-full h-full"
+                          src={`https://www.youtube.com/embed/${PRE_RECORDED_VIDEOS[(activeDay - 1) % 5].youtubeId}?rel=0&modestbranding=1`}
+                          title={PRE_RECORDED_VIDEOS[(activeDay - 1) % 5].title}
+                          frameBorder="0"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                          allowFullScreen
+                        />
+                      </div>
+
+                      <p className="text-xs text-gray-500 px-6 pb-5 leading-relaxed">
+                        {PRE_RECORDED_VIDEOS[(activeDay - 1) % 5].description}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Task Cards List */}
+                  <div className="space-y-3">
+                    {TASK_ORDER.map((taskId) => (
+                      <TaskCard
+                        key={taskId}
+                        taskId={taskId}
+                        log={logMap[taskId]}
+                        dayNumber={activeDay}
+                        currentDayNumber={currentDayNumber}
+                        readonly={false}
+                        expanded={expandedTaskId === taskId}
+                        onToggleExpand={() => setExpandedTaskId(expandedTaskId === taskId ? null : taskId)}
+                        onSubmit={handleLogSubmit}
+                        loading={loadingTaskId === taskId}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </main>
+          </div>
         </div>
       )}
     </div>

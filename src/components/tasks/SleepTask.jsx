@@ -41,7 +41,7 @@ export default function SleepTask({ onSubmit, existingLog, loading, dayNumber })
         ))}
       </div>
 
-      <button onClick={() => onSubmit({ amount: hours, unit: 'hrs', forDay: dayNumber })} disabled={loading}
+      <button onClick={() => onSubmit({ amount: hours, unit: 'hrs' })} disabled={loading}
         className="btn-brand" style={{ background: 'linear-gradient(135deg, #6366F1, #4338CA)' }}>
         {loading ? 'Saving...' : existingLog?.completed ? '✓ Update Sleep' : 'Save Sleep ✓'}
       </button>
