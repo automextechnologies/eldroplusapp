@@ -10,6 +10,7 @@ import { isDayUnlocked, formatDate } from '../utils/dateUtils';
 import { TASK_ORDER, TASK_CONFIG } from '../utils/taskConfig';
 import { isTaskCompleted } from '../utils/taskCompletion';
 import TaskCard from '../components/shared/TaskCard';
+import LiveSessionCard from '../components/dashboard/LiveSessionCard';
 import {
   AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid
 } from 'recharts';
@@ -310,7 +311,10 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* CTA Link to Workspace */}
+          {/* Live Session Section */}
+          <LiveSessionCard />
+
+          {/* CTA Link to Tasks */}
           <Link 
             to="/tasks" 
             className="block relative overflow-hidden rounded-3xl p-6 border border-brand-500/15 bg-gradient-to-r from-brand-50 to-white hover:border-brand-500/30 transition-all active:scale-[0.99] shadow-sm group"
@@ -321,7 +325,7 @@ export default function Dashboard() {
               </svg>
             </div>
             <h3 className="font-display font-black text-base text-gray-900">Log Today's Tasks</h3>
-            <p className="text-xs text-gray-500 mt-1 max-w-[80%]">Open your 30-day timeline roadmap workspace and complete your daily checklist.</p>
+            <p className="text-xs text-gray-500 mt-1 max-w-[80%]">Open your 30-day timeline roadmap and complete your daily tasks checklist.</p>
           </Link>
 
           {/* Streaks & Cumulative Statistics Row */}

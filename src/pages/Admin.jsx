@@ -10,6 +10,8 @@ import {
 } from 'recharts';
 import { TASK_CONFIG, TASK_ORDER } from '../utils/taskConfig';
 import { isTaskCompleted } from '../utils/taskCompletion';
+import RecordedVideosManager from '../components/admin/RecordedVideosManager';
+import MeetingsManager from '../components/admin/MeetingsManager';
 
 export default function Admin() {
   const { tab: urlTab } = useParams();
@@ -37,6 +39,8 @@ export default function Admin() {
     if (t === 'contacts') return 'customers';
     if (t === 'sales-reps') return 'salesreps';
     if (t === 'stages') return 'pipelines';
+    if (t === 'recorded-video' || t === 'recorded-videos' || t === 'videos') return 'recorded-video';
+    if (t === 'meetings' || t === 'meeting') return 'meetings';
     return t || 'dashboard';
   };
 
@@ -1159,6 +1163,11 @@ export default function Admin() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
             )},
+            { id: 'meetings', label: 'Meetings', icon: (
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              </svg>
+            )},
             { id: 'packages', label: 'Packages Management', icon: (
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
@@ -1177,6 +1186,11 @@ export default function Admin() {
             { id: 'tickets', label: 'Enquiry Tickets', icon: (
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
+              </svg>
+            )},
+            { id: 'recorded-video', label: 'Recorded Video', icon: (
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
               </svg>
             )},
             { id: 'push-notifications', label: 'Push Notifications', icon: (
@@ -1255,7 +1269,7 @@ export default function Admin() {
               </svg>
             </button>
             <h2 className="font-display font-extrabold text-sm md:text-base text-gray-900 capitalize">
-              {activeTab === 'onboarding' ? 'Customer Onboarding' : activeTab === 'batches' ? 'Batches Management' : activeTab === 'pipelines' ? 'Pipelines' : activeTab === 'tickets' ? 'Enquiry Tickets' : activeTab === 'packages' ? 'Packages Management' : activeTab === 'salesreps' ? 'Sales Reps (Telecallers)' : activeTab === 'push-notifications' ? 'Push Notifications Setup' : activeTab === 'customers' ? 'Customers Directory' : activeTab}
+              {activeTab === 'onboarding' ? 'Customer Onboarding' : activeTab === 'batches' ? 'Batches Management' : activeTab === 'meetings' ? 'Live Meetings Management' : activeTab === 'pipelines' ? 'Pipelines' : activeTab === 'tickets' ? 'Enquiry Tickets' : activeTab === 'packages' ? 'Packages Management' : activeTab === 'salesreps' ? 'Sales Reps (Telecallers)' : activeTab === 'recorded-video' ? 'Recorded Video' : activeTab === 'push-notifications' ? 'Push Notifications Setup' : activeTab === 'customers' ? 'Customers Directory' : activeTab}
             </h2>
           </div>
 
@@ -2745,6 +2759,16 @@ export default function Admin() {
               )}
             </div>
           </div>
+        )}
+
+        {/* Tab: Meetings Management */}
+        {activeTab === 'meetings' && (
+          <MeetingsManager />
+        )}
+
+        {/* Tab 7: Recorded Video */}
+        {activeTab === 'recorded-video' && (
+          <RecordedVideosManager />
         )}
 
       </main>

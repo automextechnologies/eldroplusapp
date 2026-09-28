@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useParams } from 'react-router-dom';
 import { useEffect } from 'react';
 import { useUserStore } from './store/useUserStore';
 import AppShell from './components/layout/AppShell';
@@ -6,12 +6,17 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import DailyTasks from './pages/DailyTasks';
 import ChallengeGrid from './pages/ChallengeGrid';
-import DayDetail from './pages/DayDetail';
 import Settings from './pages/Settings';
+import Class from './pages/Class';
 import Admin from './pages/Admin';
 import CustomerDetail from './pages/CustomerDetail';
 import db from './db/dexie';
 import ErrorBoundary from './components/shared/ErrorBoundary';
+
+function DayRedirect() {
+  const { dayNumber } = useParams();
+  return <Navigate to={dayNumber ? `/tasks?day=${dayNumber}` : '/tasks'} replace />;
+}
 
 const BASE_URL = import.meta.env.DEV
   ? 'http://localhost:3001'
@@ -83,20 +88,23 @@ export default function App() {
     <ErrorBoundary>
       <Routes>
         {/* Auth */}
-        <Route path="/login"  element={<RequireGuest><Login /></RequireGuest>} />
+        <Route path="/login" element={<RequireGuest><Login /></RequireGuest>} />
 
         {/* Admin */}
-        <Route path="/admin"  element={<Navigate to="/admin/dashboard" replace />} />
+        <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
         <Route path="/admin/:tab" element={<RequireAdmin><Admin /></RequireAdmin>} />
         <Route path="/admin/customer/:customerId" element={<RequireAdmin><CustomerDetail /></RequireAdmin>} />
 
         {/* App */}
         <Route element={<RequireAuth><AppShell /></RequireAuth>}>
-          <Route index         element={<Dashboard />} />
-          <Route path="tasks"          element={<DailyTasks />} />
-          <Route path="challenge"      element={<ChallengeGrid />} />
-          <Route path="day/:dayNumber" element={<DayDetail />} />
-          <Route path="settings"       element={<Settings />} />
+          <Route index element={<Dashboard />} />
+          <Route path="tutorials" element={<Class />} />
+          <Route path="class" element={<Navigate to="/tutorials" replace />} />
+          <Route path="tasks" element={<DailyTasks />} />
+          <Route path="tasks/:dayNumber" element={<DayRedirect />} />
+          <Route path="challenge" element={<ChallengeGrid />} />
+          <Route path="day/:dayNumber" element={<DayRedirect />} />
+          <Route path="settings" element={<Settings />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />
