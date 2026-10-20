@@ -180,7 +180,12 @@ export default function Settings() {
               <span className="font-display font-extrabold text-2xl text-white">{initials}</span>
             </div>
             <div className="flex-1">
-              <p className="font-display font-bold text-lg text-gray-900">{user.name}</p>
+              <div className="flex items-center justify-between">
+                <p className="font-display font-bold text-lg text-gray-900">{user.name}</p>
+                <span className="text-[11px] font-bold text-brand-700 bg-brand-500/10 border border-brand-500/20 px-2.5 py-0.5 rounded-full">
+                  v.1.2
+                </span>
+              </div>
               <p className="text-sm text-gray-500 font-semibold">{user.phone}</p>
               <p className="text-xs text-brand-500 font-semibold mt-1">
                 Started {user.startDate ? new Date(user.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
@@ -310,7 +315,7 @@ export default function Settings() {
 
         </div>
 
-        <p className="text-center text-xs text-gray-400 pt-2 pb-6 md:pb-0">eldroplus · v1.0</p>
+        <p className="text-center text-xs text-gray-400 pt-2 pb-6 md:pb-0">eldroplus · v.1.2</p>
       </div>
     </div>
   );

@@ -246,11 +246,18 @@ export default function Login() {
             Live Healthy · Better Tomorrow
           </p>
         </div>
-        <div className="flex-1 min-h-0 bg-[#F4F8F5] border-t border-gray-200 rounded-t-[1.75rem] overflow-y-auto px-5 pt-6 pb-5">
-          <h2 className="font-display font-extrabold text-xl text-gray-900 mb-0.5">Welcome back</h2>
-          <p className="text-xs mb-4 text-gray-500">Sign in to continue your journey</p>
-          {errorBanner}
-          {formBody}
+        <div className="flex-1 min-h-0 bg-[#F4F8F5] border-t border-gray-200 rounded-t-[1.75rem] overflow-y-auto px-5 pt-6 pb-5 flex flex-col justify-between">
+          <div>
+            <h2 className="font-display font-extrabold text-xl text-gray-900 mb-0.5">Welcome back</h2>
+            <p className="text-xs mb-4 text-gray-500">Sign in to continue your journey</p>
+            {errorBanner}
+            {formBody}
+          </div>
+          <div className="mt-6 text-center pb-1">
+            <span className="inline-block text-[11px] font-bold text-gray-400 bg-white border border-gray-200/80 px-3 py-1 rounded-full">
+              v.1.2
+            </span>
+          </div>
         </div>
       </div>
 
@@ -263,16 +270,23 @@ export default function Login() {
             style={{ borderRadius:'2.1rem', background:'linear-gradient(155deg, #F2F8F4 0%, #b4d8c0 100%)', border: '1px solid #b4d8c0', minHeight:'600px' }}>
             <div className="w-[44%] shrink-0"><BrandPanel /></div>
             <div className="flex-1 flex items-stretch py-4 pr-4">
-              <div className="bg-[#ffffff] border border-gray-200 w-full flex flex-col justify-center px-9 py-8 overflow-y-auto"
+              <div className="bg-[#ffffff] border border-gray-200 w-full flex flex-col justify-between px-9 py-8 overflow-y-auto"
                 style={{ borderRadius:'1.6rem' }}>
-                <h2 className="font-display font-extrabold text-[1.65rem] text-gray-900 mb-0.5">
-                  Welcome back
-                </h2>
-                <p className="text-sm mb-6 text-gray-500">
-                  Sign in to continue your journey
-                </p>
-                {errorBanner}
-                {formBody}
+                <div>
+                  <h2 className="font-display font-extrabold text-[1.65rem] text-gray-900 mb-0.5">
+                    Welcome back
+                  </h2>
+                  <p className="text-sm mb-6 text-gray-500">
+                    Sign in to continue your journey
+                  </p>
+                  {errorBanner}
+                  {formBody}
+                </div>
+                <div className="mt-6 text-center">
+                  <span className="inline-block text-xs font-bold text-gray-400 bg-gray-50 border border-gray-200/80 px-3 py-1 rounded-full">
+                    v.1.2
+                  </span>
+                </div>
               </div>
             </div>
           </div>
