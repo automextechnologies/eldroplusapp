@@ -236,7 +236,7 @@ export default function CustomerDetail() {
     }
     try {
       await api.delete(`/api/admin/customers?id=${customer._id}`);
-      navigate('/admin', { state: { activeTab: 'customers' } });
+      navigate('/admin/customers', { replace: true });
     } catch (err) {
       console.error(err);
       setError(err.message || 'Failed to delete customer');
@@ -407,7 +407,7 @@ export default function CustomerDetail() {
           ].map((item) => (
             <button
               key={item.id}
-              onClick={() => navigate('/admin', { state: { activeTab: item.id } })}
+              onClick={() => navigate(`/admin/${item.id}`)}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-bold transition-all ${
                 item.id === 'customers'
                   ? 'bg-brand-500 text-white shadow-brand hover:bg-brand-600'
@@ -457,7 +457,7 @@ export default function CustomerDetail() {
             </button>
             <h2 className="font-display font-extrabold text-sm md:text-base text-gray-900 flex items-center gap-2">
               <button
-                onClick={() => navigate('/admin', { state: { activeTab: 'customers' } })}
+                onClick={() => navigate('/admin/customers')}
                 className="text-brand-500 hover:underline"
               >
                 Customers Directory
@@ -482,7 +482,7 @@ export default function CustomerDetail() {
               <h3 className="font-display font-extrabold text-lg mb-2">Error Loading Details</h3>
               <p className="text-sm font-medium mb-4">{error}</p>
               <button
-                onClick={() => navigate('/admin', { state: { activeTab: 'customers' } })}
+                onClick={() => navigate('/admin/customers')}
                 className="btn-brand px-6 py-2.5 rounded-xl text-xs font-bold shadow-brand"
               >
                 Back to Directory
@@ -526,7 +526,7 @@ export default function CustomerDetail() {
                     Delete Customer
                   </button>
                   <button
-                    onClick={() => navigate('/admin', { state: { activeTab: 'customers' } })}
+                    onClick={() => navigate('/admin/customers')}
                     className="px-5 py-2.5 bg-gray-100 hover:bg-gray-200/70 border border-border rounded-2xl text-xs font-bold text-gray-700 transition-colors"
                   >
                     Back to Directory

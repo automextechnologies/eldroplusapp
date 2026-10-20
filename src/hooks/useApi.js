@@ -42,7 +42,7 @@ export function useApi() {
       get: (url) => request(url),
       post: (url, body) => request(url, { method: 'POST', body }),
       put: (url, body) => request(url, { method: 'PUT', body }),
-      delete: (url) => request(url, { method: 'DELETE' }),
+      delete: (url, body) => request(url, { method: 'DELETE', body }),
     }),
     [request]
   );

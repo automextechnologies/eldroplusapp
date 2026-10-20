@@ -76,6 +76,9 @@ self.addEventListener('notificationclick', (event) => {
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
       for (const client of clientList) {
         if (client.url.includes(self.location.origin) && 'focus' in client) {
+          if ('navigate' in client && url && url !== '/') {
+            client.navigate(url);
+          }
           return client.focus();
         }
       }
@@ -98,6 +101,7 @@ async function replaySyncQueue() {
     client.postMessage({ type: 'REPLAY_SYNC_QUEUE' });
   }
 }
+
 // Import Firebase scripts from CDN
 importScripts('https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/9.22.0/firebase-messaging-compat.js');
@@ -108,7 +112,7 @@ firebase.initializeApp({
   projectId: "eldroplus",
   storageBucket: "eldroplus.firebasestorage.app",
   messagingSenderId: "1011847414777",
-  appId: "1:1011847414777:web:428673e3fea271e4b7f328"
+  appId: "1:1011847414777:web:4d2d28281d7670d0b7f328"
 });
 
 const messaging = firebase.messaging();
@@ -116,12 +120,12 @@ const messaging = firebase.messaging();
 messaging.onBackgroundMessage((payload) => {
   console.log('[sw.js] Received background message ', payload);
   
-  const notificationTitle = payload.notification?.title || 'Water Intake Reminder';
+  const notificationTitle = payload.notification?.title || payload.data?.title || 'eldroplus';
   const notificationOptions = {
-    body: payload.notification?.body || 'Time to drink water! Keep your hydration target on track.',
-    icon: payload.notification?.icon || '/pwa-192x192.png',
+    body: payload.notification?.body || payload.data?.body || 'You have a new health update.',
+    icon: payload.notification?.icon || payload.data?.icon || '/pwa-192x192.png',
     badge: '/badge-72x72.png',
-    tag: 'water-intake-reminder',
+    tag: payload.data?.tag || `eldroplus-push-${Date.now()}`,
     data: payload.data || { url: '/' }
   };
 

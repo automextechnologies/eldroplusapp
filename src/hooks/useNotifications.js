@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useUserStore } from '../store/useUserStore';
 import { useApi } from './useApi';
-import { getToken } from 'firebase/messaging';
+import { getToken, onMessage } from 'firebase/messaging';
 import { messaging } from '../firebase';
 
 export function useNotifications() {
@@ -30,8 +30,9 @@ export function useNotifications() {
     if (!supported || permission !== 'granted' || !token) return;
     try {
       const reg = await navigator.serviceWorker.ready;
+      const vapidKey = import.meta.env.VITE_FIREBASE_VAPID_KEY || 'BLeiYky8D7PTtuLsx07VaGx85q5g1Mp3egtHQePROwnsLsIehzn-zgr0WlXL-TKtvMXXwkq5OQFokv_1w7YMyzc';
       const fcmToken = await getToken(messaging, {
-        vapidKey: import.meta.env.VITE_FIREBASE_VAPID_KEY,
+        vapidKey,
         serviceWorkerRegistration: reg,
       });
       if (fcmToken) {
@@ -48,6 +49,41 @@ export function useNotifications() {
     syncToken();
   }, [permission, token]);
 
+  // Listen for foreground FCM notifications
+  useEffect(() => {
+    if (!messaging) return;
+    try {
+      const unsubscribe = onMessage(messaging, (payload) => {
+        console.log('[FCM] Received foreground notification:', payload);
+        const title = payload.notification?.title || payload.data?.title || 'eldroplus';
+        const body = payload.notification?.body || payload.data?.body || '';
+        const icon = payload.notification?.icon || payload.data?.icon || '/pwa-192x192.png';
+        const data = payload.data || { url: '/' };
+
+        if (Notification.permission === 'granted') {
+          if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.ready.then((reg) => {
+              reg.showNotification(title, {
+                body,
+                icon,
+                badge: '/badge-72x72.png',
+                tag: payload.data?.tag || `foreground-${Date.now()}`,
+                data,
+              });
+            }).catch(() => {
+              new Notification(title, { body, icon });
+            });
+          } else {
+            new Notification(title, { body, icon });
+          }
+        }
+      });
+      return () => unsubscribe();
+    } catch (err) {
+      console.warn('[FCM] onMessage listener setup error:', err);
+    }
+  }, []);
+
   async function requestPermission() {
     if (!supported) return false;
     const result = await Notification.requestPermission();
@@ -56,7 +92,7 @@ export function useNotifications() {
   }
 
   function cancelTaskReminders(taskId) {
-    // No-op (previously cleared scheduled task reminders)
+    // No-op (handled server-side via FCM)
   }
 
   return { permission, supported, isIOS, isStandalone, requestPermission, cancelTaskReminders };

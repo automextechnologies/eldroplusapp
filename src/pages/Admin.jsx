@@ -58,6 +58,11 @@ export default function Admin() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formLoading, setFormLoading] = useState(false);
   const [formError, setFormError] = useState('');
+
+  // Customer selection & delete modal state
+  const [selectedCustomerIds, setSelectedCustomerIds] = useState([]);
+  const [deleteModal, setDeleteModal] = useState({ isOpen: false, targetCustomer: null, isBulk: false });
+  const [deleteLoading, setDeleteLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
@@ -78,6 +83,7 @@ export default function Admin() {
   const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
   const [editingBatch, setEditingBatch] = useState(null);
   const [viewingBatchMembers, setViewingBatchMembers] = useState(null);
+  const [deleteBatchModal, setDeleteBatchModal] = useState({ isOpen: false, batch: null, loading: false });
   const [batchFormData, setBatchFormData] = useState({
     name: '',
     startDate: new Date().toISOString().split('T')[0],
@@ -554,20 +560,72 @@ export default function Admin() {
     }
   };
 
-  const handleDeleteCustomer = async (customer) => {
-    if (!window.confirm(`Are you sure you want to delete customer "${customer.name}"? This will permanently delete their account and all task logs.`)) {
-      return;
-    }
+  const openDeleteModal = (customer, isBulk = false) => {
+    setDeleteModal({
+      isOpen: true,
+      targetCustomer: customer,
+      isBulk,
+    });
+  };
+
+  const handleConfirmDelete = async () => {
+    setDeleteLoading(true);
     try {
-      await api.delete(`/api/admin/customers?id=${customer._id}`);
-      setCustomers((prev) => prev.filter((c) => c._id !== customer._id));
-      setSuccessMsg(`Customer "${customer.name}" deleted successfully.`);
+      if (deleteModal.isBulk) {
+        const count = selectedCustomerIds.length;
+        if (count === 0) return;
+        await api.delete(`/api/admin/customers?ids=${selectedCustomerIds.join(',')}`, { ids: selectedCustomerIds });
+        setCustomers((prev) => prev.filter((c) => !selectedCustomerIds.includes(c._id)));
+        setSelectedCustomerIds([]);
+        setSuccessMsg(`Successfully deleted ${count} customer(s).`);
+      } else if (deleteModal.targetCustomer) {
+        const cust = deleteModal.targetCustomer;
+        await api.delete(`/api/admin/customers?id=${cust._id}`, { id: cust._id });
+        setCustomers((prev) => prev.filter((c) => c._id !== cust._id));
+        setSelectedCustomerIds((prev) => prev.filter((id) => id !== cust._id));
+        setSuccessMsg(`Customer "${cust.name}" deleted successfully.`);
+      }
       setTimeout(() => setSuccessMsg(''), 5000);
       fetchBatches();
+      setDeleteModal({ isOpen: false, targetCustomer: null, isBulk: false });
+      navigate('/admin/customers', { replace: true });
     } catch (err) {
-      setError(err.message || 'Failed to delete customer');
+      setError(err.message || 'Failed to delete customer(s)');
       setTimeout(() => setError(''), 5000);
+    } finally {
+      setDeleteLoading(false);
     }
+  };
+
+  const handleDeleteCustomer = (customer) => {
+    openDeleteModal(customer, false);
+  };
+
+  const handleBulkDeleteCustomers = () => {
+    if (selectedCustomerIds.length === 0) return;
+    openDeleteModal(null, true);
+  };
+
+  const handleToggleSelectAll = () => {
+    const allSelected = filteredCustomers.length > 0 && filteredCustomers.every((c) => selectedCustomerIds.includes(c._id));
+    if (allSelected) {
+      const filteredIds = new Set(filteredCustomers.map((c) => c._id));
+      setSelectedCustomerIds((prev) => prev.filter((id) => !filteredIds.has(id)));
+    } else {
+      const newSelected = new Set(selectedCustomerIds);
+      filteredCustomers.forEach((c) => newSelected.add(c._id));
+      setSelectedCustomerIds(Array.from(newSelected));
+    }
+  };
+
+  const handleToggleSelectCustomer = (id) => {
+    setSelectedCustomerIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  const handleClearSelection = () => {
+    setSelectedCustomerIds([]);
   };
 
   // Sales Rep Form handlers
@@ -668,6 +726,51 @@ export default function Admin() {
       setBatchFormLoading(false);
     }
   };
+
+  const openDeleteBatchModal = (batch) => {
+    setDeleteBatchModal({
+      isOpen: true,
+      batch,
+      loading: false,
+    });
+  };
+
+  const handleCloseDeleteBatchModal = () => {
+    if (!deleteBatchModal.loading) {
+      setDeleteBatchModal({ isOpen: false, batch: null, loading: false });
+    }
+  };
+
+  const handleConfirmDeleteBatch = async () => {
+    const batch = deleteBatchModal.batch;
+    if (!batch) return;
+
+    const enrolledCount = customers.filter(
+      (c) => (c.batchId?._id || c.batchId) === batch._id
+    ).length;
+
+    // Condition: only batches without any customer can be deleted
+    if (enrolledCount > 0) {
+      setError(`Cannot delete batch "${batch.name}". It currently has ${enrolledCount} customer(s) enrolled. Only batches without any customers can be deleted.`);
+      setTimeout(() => setError(''), 5000);
+      setDeleteBatchModal({ isOpen: false, batch: null, loading: false });
+      return;
+    }
+
+    setDeleteBatchModal((prev) => ({ ...prev, loading: true }));
+    try {
+      await api.delete(`/api/admin/batches?id=${batch._id}`);
+      setBatches((prev) => prev.filter((b) => b._id !== batch._id));
+      setSuccessMsg(`Batch "${batch.name}" deleted successfully!`);
+      setTimeout(() => setSuccessMsg(''), 5000);
+      setDeleteBatchModal({ isOpen: false, batch: null, loading: false });
+    } catch (err) {
+      setError(err.message || 'Failed to delete batch');
+      setTimeout(() => setError(''), 5000);
+      setDeleteBatchModal((prev) => ({ ...prev, loading: false }));
+    }
+  };
+
   // Package Form handlers
   const handlePackageInputChange = (e) => {
     const { name, value } = e.target;
@@ -1533,11 +1636,38 @@ export default function Admin() {
             </div>
 
             <div className="bg-white rounded-3xl border border-border shadow-sm overflow-hidden">
-              <div className="p-6 border-b border-border flex items-center justify-between">
-                <h2 className="font-display font-extrabold text-base text-gray-900">Directory</h2>
-                <span className="px-2.5 py-1 bg-brand-50 text-brand-700 text-xs font-bold rounded-lg border border-brand-100">
-                  {filteredCustomers.length} match(es)
-                </span>
+              <div className="p-6 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <h2 className="font-display font-extrabold text-base text-gray-900">Directory</h2>
+                  <span className="px-2.5 py-1 bg-brand-50 text-brand-700 text-xs font-bold rounded-lg border border-brand-100">
+                    {filteredCustomers.length} match(es)
+                  </span>
+                </div>
+
+                {selectedCustomerIds.length > 0 && (
+                  <div className="flex items-center gap-3 bg-red-50/60 border border-red-100 px-3.5 py-2 rounded-2xl animate-scale-in">
+                    <span className="text-xs font-bold text-red-900">
+                      {selectedCustomerIds.length} selected
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleClearSelection}
+                      className="text-xs font-semibold text-gray-500 hover:text-gray-800 transition-colors px-1.5 py-0.5"
+                    >
+                      Clear
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleBulkDeleteCustomers}
+                      className="px-3.5 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                      Delete Selected ({selectedCustomerIds.length})
+                    </button>
+                  </div>
+                )}
               </div>
 
               {loading ? (
@@ -1563,16 +1693,34 @@ export default function Admin() {
                   <table className="w-full border-collapse text-left">
                     <thead>
                       <tr className="bg-gradient-to-r from-brand-50/40 to-transparent border-b border-border">
+                        <th className="w-12 px-4 py-4 text-center">
+                          <input
+                            type="checkbox"
+                            checked={filteredCustomers.length > 0 && filteredCustomers.every((c) => selectedCustomerIds.includes(c._id))}
+                            ref={(el) => {
+                              if (el) {
+                                const someSelected = filteredCustomers.some((c) => selectedCustomerIds.includes(c._id));
+                                const allSelected = filteredCustomers.length > 0 && filteredCustomers.every((c) => selectedCustomerIds.includes(c._id));
+                                el.indeterminate = someSelected && !allSelected;
+                              }
+                            }}
+                            onChange={handleToggleSelectAll}
+                            className="w-4 h-4 rounded border-gray-300 text-brand-600 focus:ring-brand-500 cursor-pointer"
+                            title="Select all customers"
+                          />
+                        </th>
                         <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Name</th>
                         <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Phone</th>
                         <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Package</th>
                         <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Batch</th>
                         <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Telecaller</th>
                         <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Created Date</th>
+                        <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
                       {filteredCustomers.map((customer) => {
+                        const isSelected = selectedCustomerIds.includes(customer._id);
                         const initials = customer.name
                           ?.split(' ')
                           .filter(Boolean)
@@ -1582,7 +1730,21 @@ export default function Admin() {
                           .toUpperCase() || '?';
 
                         return (
-                          <tr key={customer._id} className="hover:bg-brand-50/10 transition-colors">
+                          <tr
+                            key={customer._id}
+                            className={`hover:bg-brand-50/10 transition-colors ${
+                              isSelected ? 'bg-brand-50/30' : ''
+                            }`}
+                          >
+                            <td className="w-12 px-4 py-4 text-center">
+                              <input
+                                type="checkbox"
+                                checked={isSelected}
+                                onChange={() => handleToggleSelectCustomer(customer._id)}
+                                className="w-4 h-4 rounded border-gray-300 text-brand-600 focus:ring-brand-500 cursor-pointer"
+                                title={`Select ${customer.name}`}
+                              />
+                            </td>
                             <td className="px-6 py-4 whitespace-nowrap">
                               <div className="flex items-center gap-3">
                                 <button
@@ -1631,6 +1793,29 @@ export default function Admin() {
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-600 font-medium">
                               {customer.joinedDate || customer.createdAt ? new Date(customer.joinedDate || customer.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-right">
+                              <div className="flex items-center justify-end gap-1.5">
+                                <button
+                                  onClick={() => navigate(`/admin/customer/${customer._id}`)}
+                                  className="p-2 text-gray-400 hover:text-brand-600 hover:bg-brand-50 rounded-xl transition-colors"
+                                  title={`View ${customer.name}'s details`}
+                                >
+                                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                  </svg>
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteCustomer(customer)}
+                                  className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors"
+                                  title={`Delete ${customer.name}`}
+                                >
+                                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                  </svg>
+                                </button>
+                              </div>
                             </td>
                           </tr>
                         );
@@ -1911,11 +2096,22 @@ export default function Admin() {
                         <p className="text-xs text-muted">
                           Start Date: <span className="font-bold text-gray-800">{new Date(batch.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
                         </p>
-                        <div className="mt-4 pt-4 border-t border-border flex items-center justify-between">
-                          <span className="text-xs font-bold text-gray-700">Enrolled Customers</span>
-                          <span className="px-2.5 py-1 bg-brand-50 text-brand-700 text-xs font-black rounded-lg border border-brand-100">
-                            {enrolledCount} Members
-                          </span>
+                        <div className="mt-4 pt-4 border-t border-border">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-bold text-gray-700">Enrolled Customers</span>
+                            <span className="px-2.5 py-1 bg-brand-50 text-brand-700 text-xs font-black rounded-lg border border-brand-100">
+                              {enrolledCount} Members
+                            </span>
+                          </div>
+                          {enrolledCount === 0 ? (
+                            <span className="text-[10px] text-emerald-600 font-bold mt-1.5 inline-flex items-center gap-1 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100">
+                              ✓ 0 customers · Eligible for deletion
+                            </span>
+                          ) : (
+                            <span className="text-[10px] text-amber-700 font-semibold mt-1.5 inline-flex items-center gap-1 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-100">
+                              🔒 Has {enrolledCount} customer(s) · Cannot be deleted
+                            </span>
+                          )}
                         </div>
                       </div>
 
@@ -1932,9 +2128,28 @@ export default function Admin() {
                             setBatchFormData({ name: batch.name, startDate: new Date(batch.startDate).toISOString().split('T')[0] });
                             setIsBatchModalOpen(true);
                           }}
-                          className="px-4 py-2 text-xs font-bold text-brand-600 hover:text-brand-700 bg-white border border-brand-200 hover:bg-brand-50 rounded-xl transition-colors"
+                          className="px-3.5 py-2 text-xs font-bold text-brand-600 hover:text-brand-700 bg-white border border-brand-200 hover:bg-brand-50 rounded-xl transition-colors"
                         >
                           Edit
+                        </button>
+                        <button
+                          onClick={() => openDeleteBatchModal(batch)}
+                          disabled={enrolledCount > 0}
+                          title={
+                            enrolledCount > 0
+                              ? `Cannot delete: ${enrolledCount} customer(s) enrolled. Only batches without any customers can be deleted.`
+                              : `Delete batch "${batch.name}"`
+                          }
+                          className={`px-3 py-2 text-xs font-bold rounded-xl border transition-all flex items-center gap-1.5 ${
+                            enrolledCount > 0
+                              ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed opacity-60'
+                              : 'bg-white hover:bg-red-50 text-red-600 hover:text-red-700 border-red-200 shadow-sm'
+                          }`}
+                        >
+                          <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                          <span>Delete</span>
                         </button>
                       </div>
                     </div>
@@ -3280,6 +3495,77 @@ export default function Admin() {
         </div>
       )}
 
+      {/* Delete Customer Confirmation Modal */}
+      {deleteModal.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            onClick={() => !deleteLoading && setDeleteModal({ isOpen: false, targetCustomer: null, isBulk: false })}
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity"
+          />
+
+          <div className="bg-white w-full max-w-md rounded-[2.5rem] border border-border shadow-2xl relative overflow-hidden flex flex-col p-6 animate-scale-in">
+            <div className="flex items-center gap-4 mb-4">
+              <div className="w-12 h-12 rounded-2xl bg-red-100 text-red-600 flex items-center justify-center shrink-0">
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="font-display font-extrabold text-lg text-gray-900">
+                  {deleteModal.isBulk ? 'Bulk Delete Customers' : 'Delete Customer'}
+                </h3>
+                <p className="text-xs text-muted">This action is permanent and irreversible.</p>
+              </div>
+            </div>
+
+            <p className="text-sm text-gray-600 mb-6 leading-relaxed">
+              {deleteModal.isBulk ? (
+                <>
+                  Are you sure you want to permanently delete{' '}
+                  <span className="font-bold text-gray-900">{selectedCustomerIds.length} selected customer(s)</span>?
+                  Their accounts, challenge history, and all logged tasks will be permanently removed.
+                </>
+              ) : (
+                <>
+                  Are you sure you want to permanently delete customer{' '}
+                  <span className="font-bold text-gray-900">{deleteModal.targetCustomer?.name}</span>?
+                  Their account, challenge history, and all logged tasks will be permanently removed.
+                </>
+              )}
+            </p>
+
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                type="button"
+                disabled={deleteLoading}
+                onClick={() => setDeleteModal({ isOpen: false, targetCustomer: null, isBulk: false })}
+                className="px-5 py-2.5 rounded-2xl border border-border text-xs font-bold text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={deleteLoading}
+                onClick={handleConfirmDelete}
+                className="px-5 py-2.5 rounded-2xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition-colors disabled:opacity-50 shadow-sm flex items-center gap-2"
+              >
+                {deleteLoading && (
+                  <svg className="animate-spin w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                  </svg>
+                )}
+                {deleteLoading
+                  ? 'Deleting...'
+                  : deleteModal.isBulk
+                  ? `Delete (${selectedCustomerIds.length}) Customers`
+                  : 'Delete Customer'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Create Batch Modal */}
       {isBatchModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -3337,6 +3623,19 @@ export default function Admin() {
               </div>
 
               <div className="flex gap-3 pt-4 shrink-0">
+                {editingBatch && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const batchToDelete = editingBatch;
+                      setIsBatchModalOpen(false);
+                      openDeleteBatchModal(batchToDelete);
+                    }}
+                    className="px-4 py-3 bg-red-50 hover:bg-red-100 text-red-600 rounded-2xl font-bold text-sm border border-red-200 transition-colors"
+                  >
+                    Delete Batch
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => setIsBatchModalOpen(false)}
@@ -3353,6 +3652,102 @@ export default function Admin() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Batch Confirmation Modal */}
+      {deleteBatchModal.isOpen && deleteBatchModal.batch && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            onClick={handleCloseDeleteBatchModal}
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity"
+          />
+
+          <div className="bg-white w-full max-w-md rounded-[2.5rem] border border-border shadow-2xl relative overflow-hidden flex flex-col p-6 animate-scale-in">
+            {(() => {
+              const enrolled = customers.filter(
+                (c) => (c.batchId?._id || c.batchId) === deleteBatchModal.batch._id
+              ).length;
+              const hasCustomers = enrolled > 0;
+
+              return (
+                <>
+                  <div className="flex items-center gap-4 mb-4">
+                    <div
+                      className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${
+                        hasCustomers ? 'bg-amber-100 text-amber-600' : 'bg-red-100 text-red-600'
+                      }`}
+                    >
+                      {hasCustomers ? (
+                        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                      ) : (
+                        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      )}
+                    </div>
+                    <div>
+                      <h3 className="font-display font-extrabold text-lg text-gray-900">
+                        {hasCustomers ? 'Cannot Delete Batch' : 'Delete Batch'}
+                      </h3>
+                      <p className="text-xs text-muted">
+                        {hasCustomers ? 'Batch has active customers' : 'This action is permanent and cannot be undone'}
+                      </p>
+                    </div>
+                  </div>
+
+                  {hasCustomers ? (
+                    <div className="space-y-3 mb-6">
+                      <p className="text-sm text-gray-600 leading-relaxed">
+                        Batch <span className="font-bold text-gray-900">"{deleteBatchModal.batch.name}"</span> currently has{' '}
+                        <span className="font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-lg border border-amber-200">
+                          {enrolled} enrolled customer(s)
+                        </span>.
+                      </p>
+                      <p className="text-xs text-gray-500 bg-gray-50 p-3 rounded-2xl border border-border">
+                        <strong>Rule:</strong> Only batches without any customer can be deleted. Please reassign or delete the enrolled customers before deleting this batch.
+                      </p>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-600 mb-6 leading-relaxed">
+                      Are you sure you want to permanently delete batch{' '}
+                      <span className="font-bold text-gray-900">"{deleteBatchModal.batch.name}"</span>?
+                      This batch currently has <strong className="text-emerald-600">0 customers enrolled</strong> and can be safely removed.
+                    </p>
+                  )}
+
+                  <div className="flex items-center justify-end gap-3 pt-2">
+                    <button
+                      type="button"
+                      disabled={deleteBatchModal.loading}
+                      onClick={handleCloseDeleteBatchModal}
+                      className="px-5 py-2.5 rounded-2xl border border-border text-xs font-bold text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
+                    >
+                      {hasCustomers ? 'Close' : 'Cancel'}
+                    </button>
+                    {!hasCustomers && (
+                      <button
+                        type="button"
+                        disabled={deleteBatchModal.loading}
+                        onClick={handleConfirmDeleteBatch}
+                        className="px-5 py-2.5 rounded-2xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition-colors disabled:opacity-50 shadow-sm flex items-center gap-2"
+                      >
+                        {deleteBatchModal.loading && (
+                          <svg className="animate-spin w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                          </svg>
+                        )}
+                        {deleteBatchModal.loading ? 'Deleting...' : 'Delete Batch'}
+                      </button>
+                    )}
+                  </div>
+                </>
+              );
+            })()}
           </div>
         </div>
       )}

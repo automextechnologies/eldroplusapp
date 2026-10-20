@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate, useParams } from 'react-router-dom';
+import { Routes, Route, Navigate, useParams, useLocation } from 'react-router-dom';
 import { useEffect } from 'react';
 import { useUserStore } from './store/useUserStore';
 import AppShell from './components/layout/AppShell';
@@ -16,6 +16,12 @@ import ErrorBoundary from './components/shared/ErrorBoundary';
 function DayRedirect() {
   const { dayNumber } = useParams();
   return <Navigate to={dayNumber ? `/tasks?day=${dayNumber}` : '/tasks'} replace />;
+}
+
+function AdminRedirect() {
+  const location = useLocation();
+  const targetTab = location.state?.activeTab || 'dashboard';
+  return <Navigate to={`/admin/${targetTab}`} replace />;
 }
 
 const BASE_URL = import.meta.env.DEV
@@ -91,7 +97,7 @@ export default function App() {
         <Route path="/login" element={<RequireGuest><Login /></RequireGuest>} />
 
         {/* Admin */}
-        <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
+        <Route path="/admin" element={<AdminRedirect />} />
         <Route path="/admin/:tab" element={<RequireAdmin><Admin /></RequireAdmin>} />
         <Route path="/admin/customer/:customerId" element={<RequireAdmin><CustomerDetail /></RequireAdmin>} />
 
