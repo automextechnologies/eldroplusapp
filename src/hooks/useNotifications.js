@@ -30,7 +30,7 @@ export function useNotifications() {
     if (!supported || permission !== 'granted' || !token) return;
     try {
       const reg = await navigator.serviceWorker.ready;
-      const vapidKey = import.meta.env.VITE_FIREBASE_VAPID_KEY || 'BLeiYky8D7PTtuLsx07VaGx85q5g1Mp3egtHQePROwnsLsIehzn-zgr0WlXL-TKtvMXXwkq5OQFokv_1w7YMyzc';
+      const vapidKey = import.meta.env.FIREBASE_VAPID_KEY || import.meta.env.VITE_FIREBASE_VAPID_KEY || 'BLeiYky8D7PTtuLsx07VaGx85q5g1Mp3egtHQePROwnsLsIehzn-zgr0WlXL-TKtvMXXwkq5OQFokv_1w7YMyzc';
       const fcmToken = await getToken(messaging, {
         vapidKey,
         serviceWorkerRegistration: reg,
