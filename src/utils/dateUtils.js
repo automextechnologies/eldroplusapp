@@ -99,16 +99,71 @@ export function getUnlockDate(dayNumber, startDate) {
   return timings ? timings.dayUnlockTime : new Date();
 }
 
-export function getCurrentDayNumber(startDate) {
+export function parseLocalDate(input) {
+  if (!input) return new Date();
+  if (input instanceof Date) return new Date(input.getTime());
+  if (typeof input === 'string') {
+    const match = input.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (match) {
+      return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+    }
+  }
+  return new Date(input);
+}
+
+export function formatDateStr(d) {
+  if (!d) return '';
+  const dateObj = d instanceof Date ? d : new Date(d);
+  if (isNaN(dateObj.getTime())) return '';
+  const y = dateObj.getFullYear();
+  const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+  const day = String(dateObj.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+export function calculateEndDate(startDateStrOrDate, durationMonths = 1) {
+  if (!startDateStrOrDate) return null;
+  const start = parseLocalDate(startDateStrOrDate);
+  if (isNaN(start.getTime())) return null;
+
+  const year = start.getFullYear();
+  const month = start.getMonth(); // 0 - 11
+  const day = start.getDate();
+
+  const numMonths = Math.max(1, parseInt(durationMonths, 10) || 1);
+  const targetTotalMonths = month + numMonths;
+  const targetYear = year + Math.floor(targetTotalMonths / 12);
+  const targetMonth = ((targetTotalMonths % 12) + 12) % 12;
+
+  const daysInTargetMonth = new Date(targetYear, targetMonth + 1, 0).getDate();
+  const targetDay = Math.min(day, daysInTargetMonth);
+
+  return new Date(targetYear, targetMonth, targetDay, 23, 59, 59, 999);
+}
+
+export function calculateTotalDays(startDate, endDate) {
+  if (!startDate || !endDate) return 0;
+  const s = parseLocalDate(startDate);
+  const e = parseLocalDate(endDate);
+  s.setHours(0, 0, 0, 0);
+  e.setHours(0, 0, 0, 0);
+  return Math.max(1, Math.round((e - s) / (1000 * 60 * 60 * 24)) + 1);
+}
+
+export function getCurrentDayNumber(startDate, totalDays) {
   if (!startDate) return 1;
   try {
-    const start = new Date(startDate);
+    const start = parseLocalDate(startDate);
     if (isNaN(start.getTime())) return 1;
     start.setHours(0, 0, 0, 0);
     const now = new Date();
     now.setHours(0, 0, 0, 0);
     const diff = Math.floor((now - start) / (1000 * 60 * 60 * 24));
-    return Math.min(Math.max(diff + 1, 1), 30);
+    if (diff < 0) return 1;
+    if (totalDays) {
+      return Math.min(diff + 1, totalDays);
+    }
+    return diff + 1;
   } catch {
     return 1;
   }

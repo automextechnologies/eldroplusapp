@@ -1,0 +1,132 @@
+import { connectDB } from '../_lib/mongodb.js';
+import User from '../_lib/models/User.js';
+import Batch from '../_lib/models/Batch.js';
+import { verifyToken } from '../_lib/auth.js';
+import { handleCors } from '../_lib/cors.js';
+import { calculateEndDate, calculateTotalDays, getBatchTimeline } from '../_lib/dateUtils.js';
+
+export default async function handler(req, res) {
+  if (handleCors(req, res)) return;
+
+  await connectDB();
+
+  try {
+    const { userId } = verifyToken(req);
+    const requestingUser = await User.findById(userId);
+    if (!requestingUser || requestingUser.role !== 'admin') {
+      return res.status(403).json({ error: 'Forbidden. Admin access required.' });
+    }
+
+    if (req.method === 'GET') {
+      const batches = await Batch.find().sort({ createdAt: -1 });
+      const batchesWithCount = await Promise.all(batches.map(async (b) => {
+        const count = await User.countDocuments({ batchId: b._id, role: 'customer' });
+        const timeline = getBatchTimeline(b);
+        return {
+          ...b.toObject(),
+          startDate: timeline.startDate,
+          endDate: timeline.endDate,
+          durationMonths: timeline.durationMonths,
+          totalDays: timeline.totalDays,
+          customerCount: count
+        };
+      }));
+      return res.status(200).json({ batches: batchesWithCount });
+    }
+
+    if (req.method === 'POST') {
+      const { name, startDate, durationMonths, endDate } = req.body;
+      if (!name || !startDate) {
+        return res.status(400).json({ error: 'Batch Name and Start Date are required' });
+      }
+
+      const months = Math.max(1, parseInt(durationMonths, 10) || 1);
+      const computedEnd = endDate ? new Date(endDate) : calculateEndDate(startDate, months);
+      const totalDays = calculateTotalDays(startDate, computedEnd);
+
+      const newBatch = await Batch.create({
+        name,
+        startDate: new Date(startDate),
+        endDate: computedEnd,
+        durationMonths: months,
+        totalDays,
+      });
+      
+      return res.status(201).json({ batch: { ...newBatch.toObject(), customerCount: 0 } });
+    }
+
+    if (req.method === 'PUT') {
+      const { id, name, startDate, durationMonths, endDate } = req.body;
+      if (!id) {
+        return res.status(400).json({ error: 'Batch ID is required' });
+      }
+      if (!name || !startDate) {
+        return res.status(400).json({ error: 'Batch Name and Start Date are required' });
+      }
+
+      const batchToUpdate = await Batch.findById(id);
+      if (!batchToUpdate) {
+        return res.status(404).json({ error: 'Batch not found' });
+      }
+
+      const oldStartDate = batchToUpdate.startDate;
+      const months = durationMonths !== undefined ? Math.max(1, parseInt(durationMonths, 10) || 1) : (batchToUpdate.durationMonths || 1);
+      const computedEnd = endDate ? new Date(endDate) : calculateEndDate(startDate, months);
+      const totalDays = calculateTotalDays(startDate, computedEnd);
+
+      batchToUpdate.name = name;
+      batchToUpdate.startDate = new Date(startDate);
+      batchToUpdate.endDate = computedEnd;
+      batchToUpdate.durationMonths = months;
+      batchToUpdate.totalDays = totalDays;
+
+      await batchToUpdate.save();
+
+      // If the start date changed, update all customers' start dates in this batch
+      if (new Date(oldStartDate).getTime() !== new Date(startDate).getTime()) {
+        await User.updateMany(
+          { batchId: batchToUpdate._id, role: 'customer' },
+          { startDate: new Date(startDate) }
+        );
+      }
+
+      const count = await User.countDocuments({ batchId: batchToUpdate._id, role: 'customer' });
+      return res.status(200).json({ batch: { ...batchToUpdate.toObject(), customerCount: count } });
+    }
+
+    if (req.method === 'DELETE') {
+      const id = req.query?.id || req.body?.id;
+      if (!id) {
+        return res.status(400).json({ error: 'Batch ID is required' });
+      }
+
+      const batchToDelete = await Batch.findById(id);
+      if (!batchToDelete) {
+        return res.status(404).json({ error: 'Batch not found' });
+      }
+
+      // Enforce condition: only batches without any customer can be deleted
+      const customerCount = await User.countDocuments({ batchId: batchToDelete._id, role: 'customer' });
+      if (customerCount > 0) {
+        return res.status(400).json({
+          error: `Cannot delete batch "${batchToDelete.name}". It currently has ${customerCount} assigned customer(s). Only batches without any customers can be deleted.`
+        });
+      }
+
+      await Batch.deleteOne({ _id: batchToDelete._id });
+
+      return res.status(200).json({
+        message: `Batch "${batchToDelete.name}" deleted successfully`,
+        deletedId: batchToDelete._id
+      });
+    }
+
+    return res.status(405).json({ error: 'Method not allowed' });
+  } catch (err) {
+    if (err.message === 'No token' || err.name === 'JsonWebTokenError') {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    console.error('[batches]', err);
+    return res.status(500).json({ error: 'Server error' });
+  }
+}

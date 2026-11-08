@@ -2,14 +2,14 @@ import { Routes, Route, Navigate, useParams, useLocation } from 'react-router-do
 import { useEffect } from 'react';
 import { useUserStore } from './store/useUserStore';
 import AppShell from './components/layout/AppShell';
-import Login from './pages/Login';
-import Dashboard from './pages/Dashboard';
-import DailyTasks from './pages/DailyTasks';
-import ChallengeGrid from './pages/ChallengeGrid';
-import Settings from './pages/Settings';
-import Class from './pages/Class';
-import Admin from './pages/Admin';
-import CustomerDetail from './pages/CustomerDetail';
+import Login from './views/Login';
+import Dashboard from './views/Dashboard';
+import DailyTasks from './views/DailyTasks';
+import ChallengeGrid from './views/ChallengeGrid';
+import Settings from './views/Settings';
+import Class from './views/Class';
+import Admin from './views/Admin';
+import CustomerDetail from './views/CustomerDetail';
 import db from './db/dexie';
 import ErrorBoundary from './components/shared/ErrorBoundary';
 
@@ -24,9 +24,7 @@ function AdminRedirect() {
   return <Navigate to={`/admin/${targetTab}`} replace />;
 }
 
-const BASE_URL = import.meta.env.DEV
-  ? 'http://localhost:3001'
-  : 'https://elderoplusbackend.onrender.com';
+const BASE_URL = (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_API_URL) || '';
 
 function RequireAuth({ children }) {
   const isAuthenticated = useUserStore((s) => s.isAuthenticated)();

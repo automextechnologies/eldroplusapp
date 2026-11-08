@@ -2,7 +2,6 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { useState } from 'react';
 import db from '../../db/dexie';
 import { useApi } from '../../hooks/useApi';
-import { useNotifications } from '../../hooks/useNotifications';
 import { formatDate } from '../../utils/dateUtils';
 import { TASK_ORDER, TASK_CONFIG } from '../../utils/taskConfig';
 import { isTaskCompleted } from '../../utils/taskCompletion';
@@ -28,7 +27,6 @@ export default function TodayTasks({ dayNumber }) {
   const [loading, setLoading] = useState(false);
   const [confetti, setConfetti] = useState(false);
   const api = useApi();
-  const { cancelTaskReminders } = useNotifications();
 
   const todayDate = formatDate();
   const logs = useLiveQuery(
@@ -71,7 +69,6 @@ export default function TodayTasks({ dayNumber }) {
         await db.taskLogs.add(optimisticLog);
       }
 
-      cancelTaskReminders(taskId);
       setActiveTask(null);
 
       if (completedCount + 1 === TASK_ORDER.length) {
@@ -103,20 +100,6 @@ export default function TodayTasks({ dayNumber }) {
         <div className="flex items-center justify-between mb-4">
           <h2 className="font-display font-700 text-gray-900">Today's Tasks</h2>
           <span className="text-sm text-muted">{completedCount} / {TASK_ORDER.length} done</span>
-        </div>
-
-        <div className="flex gap-1 mb-4">
-          {TASK_ORDER.map((taskId) => {
-            const config = TASK_CONFIG[taskId];
-            const done = isTaskCompleted(taskId, logMap[taskId], dayNumber, dayNumber);
-            return (
-              <div
-                key={taskId}
-                className="flex-1 h-2 rounded-full transition-all duration-500"
-                style={{ backgroundColor: done ? config.color : '#e2e8f0' }}
-              />
-            );
-          })}
         </div>
 
         {TASK_ORDER.map((taskId) => (

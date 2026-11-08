@@ -1,0 +1,291 @@
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useUserStore } from '../store/useUserStore';
+import { useApi } from '../hooks/useApi';
+import { calcBMI, getBMICategory } from '../utils/bmiCalc';
+import db from '../db/dexie';
+
+function Section({ title, children }) {
+  return (
+    <div>
+      <p className="text-xs font-extrabold text-brand-500 uppercase tracking-widest mb-3 px-1">{title}</p>
+      <div className="bg-white rounded-3xl border border-gray-200 shadow-sm overflow-hidden">
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function Row({ icon, label, value, onClick, danger = false, last = false }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`w-full flex items-center gap-4 px-5 py-4 text-left transition-colors hover:bg-gray-50 ${
+        last ? '' : 'border-b border-gray-100'
+      } ${danger ? 'text-red-600 font-bold' : ''}`}
+    >
+      <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-lg flex-shrink-0 ${
+        danger ? 'bg-red-50 border border-red-100 text-red-600' : 'bg-gray-50 border border-gray-200/50 text-gray-500'
+      }`}>
+        {icon}
+      </div>
+      <div className="flex-1">
+        <p className={`text-[15px] font-bold ${danger ? 'text-red-600' : 'text-gray-900'}`}>{label}</p>
+        {value && <p className="text-xs text-gray-500 font-semibold mt-1">{value}</p>}
+      </div>
+      {!danger && (
+        <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7"/>
+        </svg>
+      )}
+    </button>
+  );
+}
+
+export default function Settings() {
+  const user = useUserStore((s) => s.user);
+  const { updateUser, logout } = useUserStore();
+  const api = useApi();
+  const navigate = useNavigate();
+
+  const [saving, setSaving] = useState(false);
+  const [success, setSuccess] = useState(false);
+
+  const bmi = calcBMI(user?.heightCm, user?.weightKg);
+  const bmiCategory = getBMICategory(bmi);
+
+  let bmiColor = 'text-gray-500';
+  if (bmiCategory) {
+    if (bmiCategory.label === 'Underweight') bmiColor = 'text-blue-600';
+    else if (bmiCategory.label === 'Normal') bmiColor = 'text-emerald-600';
+    else if (bmiCategory.label === 'Overweight') bmiColor = 'text-amber-600';
+    else if (bmiCategory.label === 'Obese') bmiColor = 'text-red-600';
+  }
+
+  async function handleLogout() {
+    await db.taskLogs.clear().catch(() => {});
+    await db.user.clear().catch(() => {});
+    logout();
+    navigate('/login');
+  }
+
+  async function exportToCSV() {
+    try {
+      const logs = await db.taskLogs.toArray();
+      if (!logs.length) return alert('No data to export.');
+      
+      const headers = ['dayNumber', 'date', 'taskId', 'completed', 'amount', 'unit'];
+      const csvContent = [
+        headers.join(','),
+        ...logs.map(l => [l.dayNumber, l.date, l.taskId, l.completed, l.amount || 0, l.unit || ''].join(','))
+      ].join('\n');
+      
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = 'eldroplus_health_data.csv';
+      link.click();
+    } catch (err) {
+      console.error(err);
+      alert('Failed to export data');
+    }
+  }
+
+  async function handleStartChallenge() {
+    try {
+      const res = await api.put('/api/user/profile', { action: 'startChallenge' });
+      if (res.user) {
+        updateUser(res.user);
+        alert('Challenge started successfully! Go to Dashboard to check your tasks.');
+        navigate('/');
+      }
+    } catch (err) {
+      console.error('Failed to start challenge:', err);
+      alert(err.message || 'Failed to start challenge');
+    }
+  }
+
+  if (!user) return null;
+
+  const initials = user.name?.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase() || '?';
+
+  return (
+    <div className="min-h-screen bg-surface md:p-4 pb-12">
+
+      {/* Header */}
+      <div 
+        className="px-5 pt-14 pb-20 md:py-10 md:rounded-3xl relative overflow-hidden mb-6 border border-brand-500/10"
+        style={{ background: 'linear-gradient(135deg, #F2F8F4 0%, #b4d8c0 100%)' }}
+      >
+        <div className="absolute -top-12 -right-12 w-52 h-52 rounded-full bg-white/10 blur-md pointer-events-none" />
+        <div className="absolute top-10 -left-8 w-28 h-28 rounded-full bg-black/5 blur-xl pointer-events-none" />
+        <h1 className="relative font-display font-extrabold text-2xl text-brand-950">Profile</h1>
+        <p className="relative text-brand-700 text-sm mt-0.5">Manage your account</p>
+      </div>
+
+      <div className="max-w-4xl mx-auto">
+        {/* Start the Challenge Card */}
+        {!user.batchId && !user.challengeStarted && (
+          <div className="px-4 md:px-0 mb-6">
+            <div className="premium-card p-6 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-3xl shadow-sm text-center space-y-4">
+              <div className="w-12 h-12 bg-amber-100/80 rounded-full flex items-center justify-center mx-auto text-amber-700">
+                <svg className="w-6 h-6 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+              </div>
+              <div className="space-y-1">
+                <h3 className="font-display font-black text-lg text-brand-950">Start Your 30-Day Health Challenge!</h3>
+                <p className="text-sm text-brand-800 max-w-md mx-auto">
+                  Your package **{user.packageId?.name || 'Tester Pack'}** is ready. Click below to start the challenge and unlock your pre-recorded daily classes and tasks.
+                </p>
+              </div>
+              <button
+                onClick={handleStartChallenge}
+                className="btn-brand px-8 py-3 rounded-2xl font-bold text-sm shadow-brand animate-bounce"
+              >
+                Start the Challenge 🚀
+              </button>
+            </div>
+          </div>
+        )}
+
+        {!user.batchId && user.challengeStarted && (
+          <div className="px-4 md:px-0 mb-6">
+            <div className="premium-card p-5 bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-3xl shadow-sm flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-700">
+                  <svg className="w-5.5 h-5.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <div>
+                  <h4 className="font-display font-bold text-sm text-emerald-950">Challenge Active</h4>
+                  <p className="text-xs text-emerald-800">Started on {new Date(user.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
+                </div>
+              </div>
+              <span className="px-2.5 py-1 bg-white text-emerald-700 text-[10px] font-bold rounded-lg border border-emerald-200">
+                📦 {user.packageId?.name || 'Tester Pack'}
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* Avatar card */}
+        <div className="px-4 md:px-0 -mt-8 md:mt-0 mb-6">
+          <div className="premium-card p-5 flex items-center gap-4">
+            <div className="w-16 h-16 rounded-2xl flex items-center justify-center shadow-inner-sm"
+                 style={{ background: 'linear-gradient(135deg, #84b49c 0%, #849c84 100%)' }}>
+              <span className="font-display font-extrabold text-2xl text-white">{initials}</span>
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center justify-between">
+                <p className="font-display font-bold text-lg text-gray-900">{user.name}</p>
+                <span className="text-[11px] font-bold text-brand-700 bg-brand-500/10 border border-brand-500/20 px-2.5 py-0.5 rounded-full">
+                  v.1.2
+                </span>
+              </div>
+              <p className="text-sm text-gray-500 font-semibold">{user.phone}</p>
+              <p className="text-xs text-brand-500 font-semibold mt-1">
+                Started {user.startDate ? new Date(user.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Sections Grid */}
+        <div className="px-4 md:px-0 pb-28 md:pb-8 grid grid-cols-1 md:grid-cols-2 gap-6 space-y-0">
+          
+          {/* Left Column */}
+          <div className="space-y-6">
+            {/* Stats */}
+            {(bmi || user.heightCm || user.weightKg) && (
+              <Section title="Body Stats">
+                <div className="px-5 py-4 grid grid-cols-3 gap-4">
+                  {user.heightCm && (
+                    <div className="text-center">
+                      <p className="font-mono font-bold text-xl text-gray-900">{user.heightCm}</p>
+                      <p className="text-xs text-gray-500 mt-0.5">cm height</p>
+                    </div>
+                  )}
+                  {user.weightKg && (
+                    <div className="text-center">
+                      <p className="font-mono font-bold text-xl text-gray-900">{user.weightKg}</p>
+                      <p className="text-xs text-gray-500 mt-0.5">kg weight</p>
+                    </div>
+                  )}
+                  {bmi && (
+                    <div className="text-center">
+                      <p className={`font-mono font-bold text-xl ${bmiColor}`}>{bmi.toFixed(1)}</p>
+                      <p className="text-xs text-gray-500 mt-0.5">BMI · {bmiCategory?.label}</p>
+                    </div>
+                  )}
+                </div>
+              </Section>
+            )}
+
+            {/* Account */}
+            <Section title="Account">
+              <Row
+                icon={
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                  </svg>
+                }
+                label="Edit profile"
+                value="Name, age, body metrics"
+                onClick={() => {}}
+              />
+              <Row
+                icon={
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 7a2 2 0 012 2m-2-2a2 2 0 00-2 2m2-2a2.5 2.5 0 00-5 0v3m0 0V15a2 2 0 01-2 2H7v1.5a1.5 1.5 0 01-3 0V15m3 0V9a4 4 0 017.5-2z" />
+                  </svg>
+                }
+                label="Change password"
+                onClick={() => {}}
+                last
+              />
+            </Section>
+          </div>
+
+          {/* Right Column */}
+          <div className="space-y-6">
+
+            {/* Data */}
+            <Section title="Data">
+              <Row
+                icon={
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                }
+                label="Export Data"
+                value="Download your logs as CSV"
+                onClick={exportToCSV}
+                last
+              />
+            </Section>
+
+            {/* Danger */}
+            <Section title="Danger Zone">
+              <Row
+                icon={
+                  <svg className="w-5 h-5 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                  </svg>
+                }
+                label="Sign out"
+                onClick={handleLogout}
+                danger
+                last
+              />
+            </Section>
+          </div>
+
+        </div>
+
+        <p className="text-center text-xs text-gray-400 pt-2 pb-6 md:pb-0">eldroplus · v.1.2</p>
+      </div>
+    </div>
+  );
+}

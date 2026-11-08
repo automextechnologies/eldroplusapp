@@ -4,100 +4,106 @@
 
 @layer base {
   html {
-    font-family: 'DM Sans', sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "SF Pro", "Inter", -apple-system, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    letter-spacing: -0.015em;
     touch-action: manipulation;
     scroll-behavior: smooth;
   }
   body {
-    background-color: #F4F8F5;
+    background-color: #F5F5F7;
     min-height: 100dvh;
-    color: #1F2937;
+    color: #1D1D1F;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
   input, select, textarea, button {
     font-size: 16px !important;
+    font-family: inherit;
   }
-  * { -webkit-tap-highlight-color: transparent; }
+  * { 
+    -webkit-tap-highlight-color: transparent; 
+  }
 }
 
 @layer components {
-  /* ── Inputs ── */
+  /* ── Inputs (Apple HIG Inset Style) ── */
   .input-field {
-    @apply w-full bg-white border border-gray-200 rounded-2xl px-4 py-3.5
-           text-gray-900 placeholder-gray-400
-           focus:outline-none focus:ring-2 focus:ring-brand-500/10 focus:border-brand-500
+    @apply w-full bg-black/[0.03] border border-black/[0.08] rounded-2xl px-4 py-3.5
+           text-[#1D1D1F] placeholder-[#86868B]
+           focus:bg-white focus:outline-none focus:ring-4 focus:ring-[#00A86B]/15 focus:border-[#00A86B]
            transition-all duration-200;
   }
 
-  /* ── Buttons ── */
+  /* ── Buttons (Apple Tactile iOS/macOS Style) ── */
   .btn-brand {
-    @apply w-full py-4 rounded-2xl font-display font-bold text-white text-base
-           bg-gradient-to-br from-brand-500 to-brand-600
-           shadow-brand active:scale-[0.97] transition-all duration-150
-           disabled:opacity-60 disabled:cursor-not-allowed hover:brightness-110;
+    @apply w-full py-3.5 rounded-2xl font-display font-semibold text-white text-base
+           bg-[#00A86B] hover:bg-[#00915C]
+           shadow-[0_2px_8px_rgba(0,168,107,0.25)] active:scale-[0.98] transition-all duration-150
+           disabled:opacity-50 disabled:cursor-not-allowed;
   }
   .btn-outline {
-    @apply w-full py-4 rounded-2xl font-display font-semibold text-brand-500 text-base
-           border-2 border-brand-500/20 bg-brand-50
-           active:scale-[0.97] transition-all duration-150 hover:bg-brand-100/50;
+    @apply w-full py-3.5 rounded-2xl font-display font-semibold text-[#00A86B] text-base
+           border border-[#00A86B]/30 bg-[#00A86B]/[0.05]
+           active:scale-[0.98] transition-all duration-150 hover:bg-[#00A86B]/[0.09];
   }
   .btn-ghost {
-    @apply w-full py-3.5 rounded-2xl font-medium text-gray-600 text-sm
-           border border-gray-200 bg-white shadow-sm
-           active:scale-[0.97] transition-all duration-150 hover:bg-gray-50;
+    @apply w-full py-3.5 rounded-2xl font-medium text-[#1D1D1F] text-sm
+           border border-black/[0.06] bg-white/80 shadow-sm
+           active:scale-[0.98] transition-all duration-150 hover:bg-black/[0.03];
   }
 
-  /* ── Cards ── */
+  /* ── Cards (Apple Squircle Surfaces) ── */
   .glass-card {
-    @apply bg-white/80 backdrop-blur-xl border border-gray-200/50 rounded-3xl shadow-[0_8px_30px_rgba(0,0,0,0.03)];
+    @apply bg-white/80 backdrop-blur-2xl border border-black/[0.05] rounded-3xl shadow-[0_4px_24px_rgba(0,0,0,0.03)];
   }
   .task-chip {
-    @apply flex-1 py-2.5 text-sm font-medium rounded-xl border border-gray-200 bg-white
-           active:scale-95 transition-all duration-150 text-gray-500;
+    @apply flex-1 py-2 text-xs font-semibold rounded-xl border border-black/[0.06] bg-white
+           active:scale-95 transition-all duration-150 text-[#86868B];
   }
   .task-chip.active {
-    @apply border-brand-500 bg-brand-50 text-brand-500;
+    @apply border-[#00A86B] bg-[#00A86B]/[0.08] text-[#00A86B];
   }
 
-  /* ── Bottom Sheet ── */
+  /* ── Bottom Sheet (Apple iOS modal sheet) ── */
   .sheet-overlay {
-    @apply fixed inset-0 bg-black/40 backdrop-blur-sm z-50 animate-fade-in;
+    @apply fixed inset-0 bg-black/30 backdrop-blur-md z-50 animate-fade-in;
   }
   .sheet-panel {
-    @apply fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 rounded-t-[2rem] z-50
-           pb-[env(safe-area-inset-bottom)] animate-slide-up overflow-y-auto;
+    @apply fixed bottom-0 left-0 right-0 bg-[#F5F5F7] border-t border-black/[0.06] rounded-t-[28px] z-50
+           pb-[env(safe-area-inset-bottom)] animate-slide-up overflow-y-auto shadow-[0_-8px_32px_rgba(0,0,0,0.1)];
     max-height: 90dvh;
   }
   .sheet-handle {
-    @apply w-10 h-1 bg-gray-200 rounded-full mx-auto mt-3 mb-1;
+    @apply w-9 h-1 bg-black/20 rounded-full mx-auto mt-3 mb-2;
   }
 
   /* ── Nav ── */
   .nav-item {
-    @apply flex-1 flex flex-col items-center gap-1 py-2.5 transition-colors duration-150;
+    @apply flex-1 flex flex-col items-center gap-1 py-2 transition-colors duration-150;
   }
 
   /* ── Skeleton ── */
   .skeleton {
-    @apply animate-pulse rounded-2xl bg-gradient-to-r from-gray-100 via-gray-200/50 to-gray-100;
+    @apply animate-pulse rounded-2xl bg-black/[0.04];
   }
   
-  /* ── Premium UI Utilities ── */
+  /* ── Premium UI Utilities (Apple Squircle & Materials) ── */
   .premium-glass {
-    @apply bg-white/90 backdrop-blur-xl border border-gray-200/80 shadow-[0_8px_32px_rgba(0,0,0,0.04)] rounded-[1.75rem];
+    @apply bg-white/85 backdrop-blur-2xl border border-black/[0.06] shadow-[0_8px_32px_rgba(0,0,0,0.04)] rounded-[22px];
   }
   .premium-glass-dark {
-    @apply bg-white/70 backdrop-blur-xl border border-gray-100 shadow-[0_8px_32px_rgba(0,0,0,0.03)] rounded-[1.75rem];
+    @apply bg-white/70 backdrop-blur-2xl border border-black/[0.04] shadow-[0_8px_32px_rgba(0,0,0,0.03)] rounded-[22px];
   }
   .premium-card {
-    @apply bg-white border border-gray-200/80 rounded-[1.5rem] shadow-[0_4px_20px_rgba(0,0,0,0.03),0_1px_2px_rgba(0,0,0,0.01)] transition-all duration-300;
+    @apply bg-white border border-black/[0.06] rounded-[20px] shadow-[0_2px_12px_rgba(0,0,0,0.03),0_1px_2px_rgba(0,0,0,0.02)] transition-all duration-200;
   }
   .premium-card-hover {
-    @apply hover:shadow-[0_12px_40px_rgba(0,0,0,0.06),0_4px_12px_rgba(0,0,0,0.02)] hover:border-brand-500/35 hover:-translate-y-0.5;
+    @apply hover:shadow-[0_12px_32px_rgba(0,0,0,0.06)] hover:border-black/[0.1] hover:-translate-y-0.5;
   }
   .premium-active {
-    @apply active:scale-[0.98] active:shadow-sm active:translate-y-0 transition-all duration-200;
+    @apply active:scale-[0.98] transition-all duration-150;
   }
 }
 
@@ -106,63 +112,62 @@
   .no-scrollbar::-webkit-scrollbar { display:none; }
   .no-scrollbar { -ms-overflow-style:none; scrollbar-width:none; }
   .text-gradient {
-    background: linear-gradient(135deg, #84b49c, #849c84);
+    background: linear-gradient(135deg, #1D1D1F 0%, #434344 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
 }
 
-/* Range slider */
+/* Range slider with Apple look */
 input[type='range'] {
   -webkit-appearance: none;
   appearance: none;
-  height: 6px;
+  height: 5px;
   border-radius: 9999px;
-  background: #E5E7EB;
+  background: #E5E5EA;
   outline: none;
 }
 input[type='range']::-webkit-slider-thumb {
   -webkit-appearance: none;
   width: 22px; height: 22px;
   border-radius: 50%;
-  background: #84b49c;
-  border: 3px solid #ffffff;
-  box-shadow: 0 0 0 2px #84b49c, 0 2px 6px rgba(132,180,156,.25);
+  background: #FFFFFF;
+  border: 0.5px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15), 0 1px 2px rgba(0, 0, 0, 0.08);
   cursor: pointer;
 }
 input[type='range']::-moz-range-thumb {
   width: 22px; height: 22px;
   border-radius: 50%;
-  background: #84b49c;
-  border: 3px solid #ffffff;
-  box-shadow: 0 0 0 2px #84b49c;
+  background: #FFFFFF;
+  border: 0.5px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15), 0 1px 2px rgba(0, 0, 0, 0.08);
   cursor: pointer;
 }
 
-/* OTP input */
+/* Apple OTP input */
 .otp-input {
-  width: 60px;
-  height: 68px;
+  width: 58px;
+  height: 64px;
   text-align: center;
-  font-size: 28px !important;
-  font-weight: 700;
-  font-family: 'JetBrains Mono', monospace;
-  border: 2px solid #E5E7EB;
-  border-radius: 18px;
+  font-size: 26px !important;
+  font-weight: 600;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
+  border: 1px solid #E5E5EA;
+  border-radius: 16px;
   background: white;
-  color: #111827;
+  color: #1D1D1F;
   outline: none;
-  transition: all 0.2s;
-  caret-color: #84b49c;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  caret-color: #00A86B;
 }
 .otp-input:focus {
-  border-color: #84b49c;
-  background: white;
-  box-shadow: 0 0 0 4px rgba(132,180,156,0.15);
+  border-color: #00A86B;
+  box-shadow: 0 0 0 4px rgba(0, 168, 107, 0.15);
 }
 .otp-input.filled {
-  border-color: #84b49c;
-  background: rgba(132,180,156,0.08);
-  color: #849c84;
+  border-color: #00A86B;
+  background: rgba(0, 168, 107, 0.05);
+  color: #1D1D1F;
 }

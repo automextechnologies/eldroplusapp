@@ -121,8 +121,9 @@ export function calculateMeetingState(meeting, now = new Date()) {
       };
     }
 
-    // Case 2: Batch has completed all 30 days
-    if (currentDayNumber > 30) {
+    // Case 2: Batch has completed all challenge sessions
+    const totalDays = meeting.totalDays || 30;
+    if (currentDayNumber > totalDays) {
       return {
         hasMeeting: true,
         hasMeetingLink,
@@ -136,7 +137,7 @@ export function calculateMeetingState(meeting, now = new Date()) {
         secondsToStart: 0,
         formattedCountdown: '',
         nextSessionDate: null,
-        underContainerText: 'Today live session completed. All 30 challenge sessions concluded.',
+        underContainerText: `Today live session completed. All ${totalDays} challenge sessions concluded.`,
       };
     }
   }

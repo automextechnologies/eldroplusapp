@@ -36,9 +36,6 @@ export default function ProteinTask({ onSubmit, existingLog, loading }) {
           )}
         </div>
         <p className="text-xs text-muted font-medium mt-1">of 60g daily goal</p>
-        <div className="mt-3 h-2 bg-orange-100 rounded-full overflow-hidden">
-          <div className="h-full bg-orange-400 rounded-full transition-all duration-500" style={{ width: `${goalPercent}%` }} />
-        </div>
       </div>
 
       <div>

@@ -100,14 +100,14 @@ export default function TaskCard({
 
   return (
     <div
-      className={`w-full rounded-2xl border transition-all duration-300 overflow-hidden ${
+      className={`w-full rounded-[20px] border transition-all duration-200 overflow-hidden ${
         isCompleted
-          ? 'bg-white border-brand-500/25 shadow-[0_4px_16px_rgba(132,180,156,0.08)]'
+          ? 'bg-white border-[#00A86B]/30 shadow-sm'
           : readonly
-          ? 'bg-gray-50/50 border-gray-100 opacity-60'
+          ? 'bg-black/[0.02] border-black/[0.04] opacity-60'
           : expanded
-          ? 'bg-white border-brand-500/30 shadow-[0_12px_30px_rgba(0,0,0,0.06)] scale-[1.01]'
-          : 'bg-white border-gray-200/80 shadow-sm hover:border-gray-300 hover:shadow-md'
+          ? 'bg-white border-[#00A86B]/30 shadow-[0_8px_24px_rgba(0,0,0,0.06)]'
+          : 'bg-white border-black/[0.06] shadow-sm hover:border-black/[0.1] hover:shadow-md'
       }`}
     >
       {/* Clickable Header Part */}
@@ -115,8 +115,8 @@ export default function TaskCard({
         role="button"
         tabIndex={readonly ? -1 : 0}
         onClick={() => !readonly && onToggleExpand && onToggleExpand()}
-        className={`w-full text-left flex items-center gap-4 px-4 py-3.5 select-none ${
-          readonly ? 'cursor-not-allowed' : 'cursor-pointer hover:bg-gray-50 active:bg-gray-100/50'
+        className={`w-full text-left flex items-center gap-3.5 px-4 py-3.5 select-none ${
+          readonly ? 'cursor-not-allowed' : 'cursor-pointer hover:bg-black/[0.02] active:bg-black/[0.04]'
         }`}
       >
         <div
@@ -183,23 +183,23 @@ export default function TaskCard({
               type="button"
               onClick={() => handleStep(-1)}
               disabled={Number(val || 0) <= 0}
-              className="w-12 h-12 rounded-2xl bg-white border border-gray-200 hover:border-gray-300 text-gray-800 font-black text-2xl flex items-center justify-center shadow-xs active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+              className="w-11 h-11 rounded-full bg-black/[0.04] hover:bg-black/[0.08] text-[#1D1D1F] font-bold text-xl flex items-center justify-center active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
               aria-label="Reduce amount"
             >
               −
             </button>
 
             {/* Numeric input field - only numbers allowed */}
-            <div className="relative flex-1 max-w-[180px]">
+            <div className="relative flex-1 max-w-[170px]">
               <input
                 type="text"
                 inputMode="decimal"
                 value={val === '' ? '' : val}
                 onChange={handleInputChange}
                 placeholder="0"
-                className="w-full h-12 text-center font-mono font-black text-2xl text-gray-900 bg-white border-2 border-gray-200 focus:border-brand-500 rounded-2xl focus:outline-none shadow-inner transition-all px-3"
+                className="w-full h-11 text-center font-mono font-bold text-xl text-[#1D1D1F] bg-black/[0.03] border border-black/[0.08] focus:border-[#00A86B] focus:bg-white rounded-2xl focus:outline-none focus:ring-4 focus:ring-[#00A86B]/15 transition-all px-3"
               />
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400 pointer-events-none">
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-[#86868B] pointer-events-none">
                 {config?.unit || ''}
               </span>
             </div>
@@ -209,7 +209,7 @@ export default function TaskCard({
               type="button"
               onClick={() => handleStep(1)}
               disabled={Number(val || 0) >= taskLimits.max}
-              className="w-12 h-12 rounded-2xl bg-white border border-gray-200 hover:border-gray-300 text-gray-800 font-black text-2xl flex items-center justify-center shadow-xs active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+              className="w-11 h-11 rounded-full bg-black/[0.04] hover:bg-black/[0.08] text-[#1D1D1F] font-bold text-xl flex items-center justify-center active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
               aria-label="Add amount"
             >
               +
@@ -237,15 +237,15 @@ export default function TaskCard({
             </div>
           )}
 
-          {/* Submit Actions (Reset to 0 removed) */}
+          {/* Submit Actions */}
           <div className="flex items-center gap-3 pt-2">
             <button
               type="button"
               onClick={() => onSubmit(taskId, { amount: Number(val) || 0, unit: config.unit })}
               disabled={loading || (Number(log?.amount || 0) === Number(val || 0))}
-              className="flex-1 py-2.5 rounded-xl text-xs font-bold text-white transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2 shadow-[0_4px_12px_rgba(132,180,156,0.2)]"
+              className="flex-1 py-2.5 rounded-full text-xs font-semibold text-white transition-all active:scale-[0.98] disabled:opacity-40 flex items-center justify-center gap-2 shadow-sm"
               style={{
-                background: `linear-gradient(135deg, ${config.color} 0%, ${config.color}bb 100%)`
+                backgroundColor: config.color || '#00A86B'
               }}
             >
               {loading ? (
@@ -259,7 +259,7 @@ export default function TaskCard({
             <button
               type="button"
               onClick={onToggleExpand}
-              className="px-4 py-2.5 rounded-xl border border-gray-200 hover:border-gray-300 text-gray-500 text-xs font-bold bg-white active:scale-95 transition-all hover:text-gray-950 hover:bg-gray-50"
+              className="px-4 py-2.5 rounded-full border border-black/[0.08] text-[#86868B] text-xs font-medium bg-black/[0.03] active:scale-95 transition-all hover:text-[#1D1D1F] hover:bg-black/[0.06]"
             >
               Cancel
             </button>

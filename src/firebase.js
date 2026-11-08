@@ -1,16 +1,15 @@
 import { initializeApp } from "firebase/app";
 import { getAnalytics } from "firebase/analytics";
-import { getMessaging } from "firebase/messaging";
 
 // Your web app's Firebase configuration
 export const firebaseConfig = {
-  apiKey: import.meta.env.FIREBASE_API_KEY || import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyC--w_4Zx7ozuhhrHn9TuLQ6QjU6peGHPg",
-  authDomain: import.meta.env.FIREBASE_AUTH_DOMAIN || import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "eldroplus.firebaseapp.com",
-  projectId: import.meta.env.FIREBASE_PROJECT_ID || import.meta.env.VITE_FIREBASE_PROJECT_ID || "eldroplus",
-  storageBucket: import.meta.env.FIREBASE_STORAGE_BUCKET || import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "eldroplus.firebasestorage.app",
-  messagingSenderId: import.meta.env.FIREBASE_MESSAGING_SENDER_ID || import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "1011847414777",
-  appId: import.meta.env.FIREBASE_APP_ID || import.meta.env.VITE_FIREBASE_APP_ID || "1:1011847414777:web:4d2d28281d7670d0b7f328",
-  measurementId: import.meta.env.FIREBASE_MEASUREMENT_ID || import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || "G-S2434T7WN2"
+  apiKey: (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_FIREBASE_API_KEY) || "AIzaSyC--w_4Zx7ozuhhrHn9TuLQ6QjU6peGHPg",
+  authDomain: (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN) || "eldroplus.firebaseapp.com",
+  projectId: (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_FIREBASE_PROJECT_ID) || "eldroplus",
+  storageBucket: (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET) || "eldroplus.firebasestorage.app",
+  messagingSenderId: (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID) || "1011847414777",
+  appId: (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_FIREBASE_APP_ID) || "1:1011847414777:web:4d2d28281d7670d0b7f328",
+  measurementId: (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID) || "G-S2434T7WN2"
 };
 
 // Initialize Firebase
@@ -26,12 +25,3 @@ try {
 }
 export const analytics = analyticsInstance;
 
-let messagingInstance = null;
-try {
-  if (typeof window !== 'undefined' && 'serviceWorker' in navigator && 'Notification' in window) {
-    messagingInstance = getMessaging(app);
-  }
-} catch (err) {
-  console.warn('[Firebase Messaging] Initialization skipped:', err?.message);
-}
-export const messaging = messagingInstance;

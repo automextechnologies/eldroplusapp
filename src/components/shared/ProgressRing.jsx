@@ -1,4 +1,4 @@
-export default function ProgressRing({ progress, size = 48, strokeWidth = 4, color = '#16a34a' }) {
+export default function ProgressRing({ progress, size = 48, strokeWidth = 4, color = '#00A86B' }) {
   const radius = (size - strokeWidth) / 2;
   const circumference = radius * 2 * Math.PI;
   const offset = circumference - (progress / 100) * circumference;
@@ -10,7 +10,7 @@ export default function ProgressRing({ progress, size = 48, strokeWidth = 4, col
         cy={size / 2}
         r={radius}
         fill="none"
-        stroke="#e2e8f0"
+        stroke="rgba(0, 0, 0, 0.06)"
         strokeWidth={strokeWidth}
       />
       <circle

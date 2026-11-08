@@ -38,9 +38,6 @@ export default function WaterTask({ onSubmit, existingLog, loading }) {
           )}
         </div>
         <p className="text-xs text-muted font-medium mt-1">of 2.5L daily goal</p>
-        <div className="mt-3 h-2 bg-blue-100 rounded-full overflow-hidden">
-          <div className="h-full bg-blue-400 rounded-full transition-all duration-500" style={{ width: `${goalPercent}%` }} />
-        </div>
       </div>
 
       <div>

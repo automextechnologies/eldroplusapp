@@ -1,0 +1,256 @@
+import { connectDB } from '../_lib/mongodb.js';
+import User from '../_lib/models/User.js';
+import Batch from '../_lib/models/Batch.js';
+import TaskLog from '../_lib/models/TaskLog.js';
+import Package from '../_lib/models/Package.js';
+import SalesRep from '../_lib/models/SalesRep.js';
+import EnquiryTicket from '../_lib/models/EnquiryTicket.js';
+import bcrypt from 'bcryptjs';
+import { verifyToken } from '../_lib/auth.js';
+import { handleCors } from '../_lib/cors.js';
+
+export default async function handler(req, res) {
+  if (handleCors(req, res)) return;
+
+  await connectDB();
+
+  try {
+    // 1. Authorize requesting user is an admin
+    const { userId } = verifyToken(req);
+    const requestingUser = await User.findById(userId);
+    if (!requestingUser || requestingUser.role !== 'admin') {
+      return res.status(403).json({ error: 'Forbidden. Admin access required.' });
+    }
+
+    // 2. Handle GET (List customers or get single customer)
+    if (req.method === 'GET') {
+      const { id } = req.query;
+      if (id) {
+        const customer = await User.findOne({ _id: id, role: 'customer' })
+          .populate('batchId')
+          .populate('packageId')
+          .populate('salesRepId')
+          .select('-passwordHash');
+        if (!customer) {
+          return res.status(404).json({ error: 'Customer not found' });
+        }
+        return res.status(200).json({ customer });
+      }
+
+      const customers = await User.find({ role: 'customer' })
+        .populate('batchId')
+        .populate('packageId')
+        .populate('salesRepId')
+        .select('-passwordHash')
+        .sort({ createdAt: -1 });
+      return res.status(200).json({ customers });
+    }
+
+    // 3. Handle POST (Create customer)
+    if (req.method === 'POST') {
+      const { name, phone, password, age, gender, heightCm, weightKg, startDate, batchId, packageId, salesRepId } = req.body;
+
+      if (!name || !phone || !password) {
+        return res.status(400).json({ error: 'Name, phone, and password are required' });
+      }
+
+      // Check if user already exists
+      const existingUser = await User.findOne({ phone });
+      if (existingUser) {
+        return res.status(400).json({ error: 'A user with this phone number already exists' });
+      }
+
+      const passwordHash = await bcrypt.hash(password, 10);
+
+      // Package & Batch override logic
+      let finalBatchId = batchId || null;
+      let finalStartDate = null;
+      let challengeStarted = false;
+
+      if (!packageId) {
+        return res.status(400).json({ error: 'Assigning the customer to a package is required' });
+      }
+
+      const pkg = await Package.findById(packageId);
+      if (!pkg) {
+        return res.status(400).json({ error: 'Selected package does not exist' });
+      }
+
+      if (pkg.name === 'Tester Pack') {
+        // Tester Pack automatically overrides to NONE batch
+        finalBatchId = null;
+        finalStartDate = null;
+        challengeStarted = false;
+      } else {
+        // Regular package requires a batch
+        if (!batchId || batchId === 'NONE') {
+          return res.status(400).json({ error: 'Regular packages must be assigned to a batch' });
+        }
+        const batch = await Batch.findById(batchId);
+        if (!batch) {
+          return res.status(400).json({ error: 'Selected batch does not exist' });
+        }
+        finalBatchId = batchId;
+        finalStartDate = batch.startDate;
+        challengeStarted = true;
+      }
+
+      const customer = await User.create({
+        name,
+        phone,
+        passwordHash,
+        role: 'customer',
+        age: age ? Number(age) : undefined,
+        gender,
+        heightCm: heightCm ? Number(heightCm) : undefined,
+        weightKg: weightKg ? Number(weightKg) : undefined,
+        startDate: finalStartDate,
+        joinedDate: new Date(),
+        batchId: finalBatchId,
+        packageId: packageId,
+        salesRepId: salesRepId || null,
+        challengeStarted,
+      });
+
+      await customer.populate(['batchId', 'packageId', 'salesRepId']);
+
+      // return created user (without password hash)
+      const createdObj = customer.toObject();
+      delete createdObj.passwordHash;
+
+      return res.status(201).json({ customer: createdObj });
+    }
+
+    // 4. Handle PUT (Edit customer)
+    if (req.method === 'PUT') {
+      const { id, name, phone, password, age, gender, heightCm, weightKg, startDate, batchId, packageId, salesRepId } = req.body;
+
+      if (!id) {
+        return res.status(400).json({ error: 'Customer ID is required' });
+      }
+
+      const customerToUpdate = await User.findById(id);
+      if (!customerToUpdate || customerToUpdate.role !== 'customer') {
+        return res.status(404).json({ error: 'Customer not found' });
+      }
+
+      if (phone && phone !== customerToUpdate.phone) {
+        const existingPhone = await User.findOne({ phone });
+        if (existingPhone) {
+          return res.status(400).json({ error: 'A user with this phone number already exists' });
+        }
+        customerToUpdate.phone = phone;
+      }
+
+      if (name) customerToUpdate.name = name;
+      if (password) {
+        customerToUpdate.passwordHash = await bcrypt.hash(password, 10);
+      }
+
+      customerToUpdate.age = age !== undefined ? (age === '' ? undefined : Number(age)) : customerToUpdate.age;
+      customerToUpdate.gender = gender !== undefined ? gender : customerToUpdate.gender;
+      customerToUpdate.heightCm = heightCm !== undefined ? (heightCm === '' ? undefined : Number(heightCm)) : customerToUpdate.heightCm;
+      customerToUpdate.weightKg = weightKg !== undefined ? (weightKg === '' ? undefined : Number(weightKg)) : customerToUpdate.weightKg;
+      
+      const finalPackageId = packageId !== undefined ? packageId : customerToUpdate.packageId;
+      if (finalPackageId) {
+        const pkg = await Package.findById(finalPackageId);
+        if (!pkg) {
+          return res.status(400).json({ error: 'Selected package does not exist' });
+        }
+        customerToUpdate.packageId = finalPackageId;
+
+        if (pkg.name === 'Tester Pack') {
+          customerToUpdate.batchId = null;
+          if (!customerToUpdate.challengeStarted) {
+            customerToUpdate.startDate = null;
+          }
+        } else {
+          const finalBatchId = batchId !== undefined ? batchId : customerToUpdate.batchId;
+          if (!finalBatchId || finalBatchId === 'NONE') {
+            return res.status(400).json({ error: 'Regular packages must be assigned to a batch' });
+          }
+
+          if (finalBatchId.toString() !== (customerToUpdate.batchId || '').toString()) {
+            const batch = await Batch.findById(finalBatchId);
+            if (!batch) {
+              return res.status(400).json({ error: 'Selected batch does not exist' });
+            }
+            customerToUpdate.batchId = finalBatchId;
+            customerToUpdate.startDate = batch.startDate;
+            customerToUpdate.challengeStarted = true;
+          }
+        }
+      }
+
+      if (salesRepId !== undefined) {
+        customerToUpdate.salesRepId = salesRepId || null;
+      }
+
+      await customerToUpdate.save();
+      await customerToUpdate.populate(['batchId', 'packageId', 'salesRepId']);
+
+      const updatedObj = customerToUpdate.toObject();
+      delete updatedObj.passwordHash;
+
+      return res.status(200).json({ customer: updatedObj });
+    }
+
+    // 5. Handle DELETE (Delete single or bulk customers and their logs)
+    if (req.method === 'DELETE') {
+      let targetIds = [];
+
+      if (Array.isArray(req.body?.ids) && req.body.ids.length > 0) {
+        targetIds = req.body.ids;
+      } else if (typeof req.query?.ids === 'string' && req.query.ids.trim()) {
+        targetIds = req.query.ids.split(',').map((s) => s.trim()).filter(Boolean);
+      } else if (req.query?.id) {
+        targetIds = [req.query.id];
+      } else if (req.body?.id) {
+        targetIds = [req.body.id];
+      }
+
+      if (targetIds.length === 0) {
+        return res.status(400).json({ error: 'Customer ID(s) required' });
+      }
+
+      // Find all matching customers (strictly role: 'customer' to protect admin accounts)
+      const customersToDelete = await User.find({
+        _id: { $in: targetIds },
+        role: 'customer',
+      }).select('_id name');
+
+      if (customersToDelete.length === 0) {
+        return res.status(404).json({ error: 'Customer(s) not found' });
+      }
+
+      const idsToDelete = customersToDelete.map((c) => c._id);
+
+      // Delete user's task logs first
+      await TaskLog.deleteMany({ userId: { $in: idsToDelete } });
+
+      // Clean up customer reference in EnquiryTickets if any exist
+      await EnquiryTicket.updateMany(
+        { 'customerDetails.userId': { $in: idsToDelete } },
+        { $set: { 'customerDetails.userId': null } }
+      );
+
+      // Delete the customers
+      const deleteResult = await User.deleteMany({ _id: { $in: idsToDelete } });
+
+      return res.status(200).json({
+        message: `${deleteResult.deletedCount} customer(s) and all associated logs deleted successfully`,
+        deletedCount: deleteResult.deletedCount,
+        deletedIds: idsToDelete,
+      });
+    }
+
+    return res.status(405).json({ error: 'Method not allowed' });
+  } catch (err) {
+    if (err.message === 'No token' || err.name === 'JsonWebTokenError') {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    console.error('[admin-customers]', err);
+    return res.status(500).json({ error: 'Server error' });
+  }
+}

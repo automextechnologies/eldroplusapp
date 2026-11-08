@@ -116,7 +116,7 @@ export default function LiveSessionCard() {
   const isLive = status === 'LIVE_NOW';
 
   return (
-    <section className="bg-brand-500 text-white rounded-3xl p-5 sm:p-6 border border-brand-400/50 shadow-brand transition-all duration-200">
+    <section className="bg-[#1D1D1F] text-white rounded-[24px] p-5 sm:p-6 border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.12)] transition-all duration-200">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-5">
         {/* Left Area: Status, Meta Badges & Session Name (No subtext after name) */}
         <div className="space-y-2.5 min-w-0 flex-1">
@@ -124,55 +124,55 @@ export default function LiveSessionCard() {
           <div className="flex flex-wrap items-center gap-2">
             {/* Status Indicator Pill */}
             <span
-              className={`text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-full border flex items-center gap-1.5 shadow-xs ${
+              className={`text-[10px] font-semibold uppercase tracking-wider px-3 py-1 rounded-full border flex items-center gap-1.5 shadow-2xs ${
                 isLive
-                  ? 'bg-white text-brand-900 border-white'
+                  ? 'bg-[#34C759]/20 text-[#34C759] border-[#34C759]/30'
                   : isCountdownActive
-                  ? 'bg-white/25 text-white border-white/30'
+                  ? 'bg-amber-400/15 text-amber-300 border-amber-400/30'
                   : status === 'TODAY_COMPLETED'
-                  ? 'bg-white/20 text-white/90 border-white/25'
-                  : 'bg-white/20 text-white border-white/25'
+                  ? 'bg-white/10 text-white/60 border-white/15'
+                  : 'bg-white/10 text-white/90 border-white/15'
               }`}
             >
               {isLive ? (
                 <>
                   <span className="relative flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75" />
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-600" />
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#34C759] opacity-75" />
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-[#34C759]" />
                   </span>
                   <span>LIVE NOW</span>
                 </>
               ) : isCountdownActive ? (
                 <>
-                  <span className="inline-block w-2 h-2 rounded-full bg-amber-300 animate-pulse" />
+                  <span className="inline-block w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
                   <span>STARTING SOON • {formattedCountdown}</span>
                 </>
               ) : status === 'TODAY_COMPLETED' ? (
                 <>
-                  <span className="w-1.5 h-1.5 rounded-full bg-white/80" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-white/60" />
                   <span>COMPLETED TODAY</span>
                 </>
               ) : (
                 <>
-                  <span className="w-1.5 h-1.5 rounded-full bg-white" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#00A86B]" />
                   <span>DAILY LIVE SESSION</span>
                 </>
               )}
             </span>
 
             {/* Time Pill */}
-            <span className="text-[10px] font-mono font-bold px-2.5 py-1 rounded-xl bg-white/20 text-white border border-white/25 shadow-xs">
+            <span className="text-[10px] font-mono font-semibold px-2.5 py-1 rounded-full bg-white/10 text-white/90 border border-white/15 shadow-2xs">
               {formatMeetingTime(meetingTime)}
             </span>
 
             {/* Duration Pill */}
-            <span className="text-[10px] font-bold px-2.5 py-1 rounded-xl bg-white/20 text-white border border-white/25 shadow-xs">
+            <span className="text-[10px] font-semibold px-2.5 py-1 rounded-full bg-white/10 text-white/90 border border-white/15 shadow-2xs">
               {formatMeetingDuration(durationMinutes)}
             </span>
           </div>
 
           {/* Session Name (No text after session name) */}
-          <h3 className="font-display font-black text-xl sm:text-2xl text-white tracking-tight leading-snug">
+          <h3 className="font-display font-bold text-xl sm:text-2xl text-white tracking-tight leading-snug">
             {meetingName || 'Daily Live Session'}
           </h3>
         </div>
@@ -185,13 +185,13 @@ export default function LiveSessionCard() {
               href={meetingLink.startsWith('http') ? meetingLink : `https://${meetingLink}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-2xl bg-white text-brand-900 hover:bg-brand-50 font-display font-black text-xs shadow-md active:scale-[0.98] transition-all text-center group"
+              className="inline-flex items-center justify-center gap-2.5 px-6 py-3 rounded-full bg-[#00A86B] hover:bg-[#00915C] text-white font-display font-semibold text-xs shadow-[0_2px_12px_rgba(0,168,107,0.35)] active:scale-[0.98] transition-all text-center group"
             >
-              <svg className="w-4 h-4 text-brand-700" viewBox="0 0 24 24" fill="currentColor">
+              <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z" />
               </svg>
               <span>Join Live Session</span>
-              <svg className="w-3.5 h-3.5 text-brand-700 transition-transform group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <svg className="w-3.5 h-3.5 text-white/80 transition-transform group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
               </svg>
             </a>
@@ -204,9 +204,9 @@ export default function LiveSessionCard() {
                   ? 'Meeting link not uploaded yet'
                   : 'Join button unlocks during scheduled meeting time'
               }
-              className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl bg-brand-600/70 text-white/75 border border-brand-400/40 font-display font-bold text-xs cursor-not-allowed select-none"
+              className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-white/10 text-white/40 border border-white/10 font-display font-semibold text-xs cursor-not-allowed select-none"
             >
-              <svg className="w-4 h-4 text-white/70" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <svg className="w-4 h-4 text-white/40" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
               </svg>
               <span>Join Live Session</span>
@@ -216,15 +216,15 @@ export default function LiveSessionCard() {
           {/* Session Updates Text: Positioned directly under the Join Button */}
           <div className="flex items-center justify-center sm:justify-end gap-1.5 px-1 text-center sm:text-right">
             <svg
-              className="w-3.5 h-3.5 text-white/90 shrink-0"
+              className="w-3.5 h-3.5 text-white/60 shrink-0"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
-              strokeWidth={2.2}
+              strokeWidth={2}
             >
               <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
-            <span className="text-[11px] font-semibold text-white/95 leading-tight">
+            <span className="text-[11px] font-medium text-white/70 leading-tight">
               {underContainerText}
             </span>
           </div>

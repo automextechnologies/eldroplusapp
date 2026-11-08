@@ -441,11 +441,6 @@ export const translations = {
       ml: "ടെലികോളർമാർ",
       context: "Admin sidebar: Telecallers"
     },
-    pipelines: {
-      en: "CRM Pipelines",
-      ml: "പൈപ്പ്‌ലൈൻ",
-      context: "Admin sidebar: Pipelines"
-    },
     enquiryTickets: {
       en: "Enquiry Tickets",
       ml: "അന്വേഷണ ടിക്കറ്റുകൾ",

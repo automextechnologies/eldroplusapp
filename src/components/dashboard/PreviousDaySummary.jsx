@@ -34,17 +34,17 @@ export default function PreviousDaySummary({ currentDayNumber }) {
   }
 
   return (
-    <div className="mx-4 bg-white rounded-2xl shadow-sm border border-border overflow-hidden">
+    <div className="mx-4 bg-white rounded-[22px] shadow-[0_2px_12px_rgba(0,0,0,0.03)] border border-black/[0.06] overflow-hidden">
       <button
         onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center justify-between px-4 py-4"
+        className="w-full flex items-center justify-between px-4 py-3.5 hover:bg-black/[0.02] transition-colors"
       >
-        <div>
-          <p className="font-display font-700 text-gray-900 text-sm">Yesterday · Day {prevDay}</p>
-          <p className="text-xs text-muted">{completedCount} of {TASK_ORDER.length} tasks completed</p>
+        <div className="text-left">
+          <p className="font-display font-bold text-[#1D1D1F] text-sm tracking-tight">Yesterday · Day {prevDay}</p>
+          <p className="text-xs text-[#86868B] font-medium mt-0.5">{completedCount} of {TASK_ORDER.length} tasks completed</p>
         </div>
         <svg
-          className={`w-5 h-5 text-gray-400 transition-transform ${expanded ? 'rotate-180' : ''}`}
+          className={`w-4 h-4 text-[#86868B] transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`}
           fill="none" viewBox="0 0 24 24" stroke="currentColor"
         >
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -52,16 +52,16 @@ export default function PreviousDaySummary({ currentDayNumber }) {
       </button>
 
       {expanded && (
-        <div className="px-4 pb-4 space-y-3 border-t border-border pt-3">
+        <div className="px-4 pb-4 space-y-3 border-t border-black/[0.06] pt-3">
           {TASK_ORDER.map((taskId) => {
             const config = TASK_CONFIG[taskId];
             const log = logMap[taskId];
             return (
               <div key={taskId} className="flex items-center gap-3">
-                <span className="text-gray-500">{config.icon}</span>
-                <span className="flex-1 text-sm text-gray-700">{config.name}</span>
+                <span className="text-base">{config.icon}</span>
+                <span className="flex-1 text-xs font-semibold text-[#1D1D1F]">{config.name}</span>
                 <span
-                  className={`text-sm font-mono font-500 ${isTaskCompleted(taskId, log, prevDay, currentDayNumber) ? 'text-gray-900' : 'text-gray-300'}`}
+                  className={`text-xs font-mono font-semibold ${isTaskCompleted(taskId, log, prevDay, currentDayNumber) ? 'text-[#34C759]' : 'text-[#86868B]'}`}
                 >
                   {formatAmount(taskId, log)}
                 </span>

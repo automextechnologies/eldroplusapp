@@ -1,31 +1,19 @@
 export default function StreakCard({ streak }) {
-  const flameColor =
-    streak >= 8 ? '#ef4444' : streak >= 4 ? '#f97316' : '#fbbf24';
-
-  const gradient =
-    streak >= 8
-      ? 'from-red-50 to-orange-50'
-      : streak >= 4
-      ? 'from-orange-50 to-yellow-50'
-      : 'from-yellow-50 to-amber-50';
-
   return (
-    <div className={`bg-gradient-to-br ${gradient} rounded-2xl p-5 border border-white shadow-sm`}>
+    <div className="bg-white rounded-[22px] p-5 border border-black/[0.06] shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
       <div className="flex items-center gap-4">
         <div
-          className={`${streak >= 3 ? 'animate-pulse' : ''} text-[#ea580c]`}
-          style={{ display: 'inline-block' }}
+          className={`w-12 h-12 rounded-2xl bg-[#FF9500]/10 flex items-center justify-center text-[#FF9500] ${streak >= 3 ? 'animate-pulse' : ''}`}
         >
-          <svg className="w-12 h-12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+          <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M12.87 2.13a.75.75 0 00-1.14-.07C9.33 4.19 6 8.54 6 12.5a6 6 0 0012 0c0-1.74-.63-3.41-1.76-4.72-.34-.4-.9-.55-1.4-.37-.5.18-.84.66-.84 1.19 0 .88-.35 1.73-.97 2.35a.75.75 0 01-1.28-.53c0-2.48.72-5.45 2.12-8.29z" />
           </svg>
         </div>
         <div>
-          <p className="font-display font-800 text-3xl text-gray-900">
-            {streak} <span className="text-xl font-700">Day{streak !== 1 ? 's' : ''}</span>
+          <p className="font-display font-bold text-3xl text-[#1D1D1F] tracking-tight">
+            {streak} <span className="text-lg font-normal text-[#86868B]">Day{streak !== 1 ? 's' : ''}</span>
           </p>
-          <p className="text-sm text-muted font-medium">
+          <p className="text-xs text-[#86868B] font-medium mt-0.5">
             {streak === 0
               ? 'Start your streak today!'
               : streak >= 7

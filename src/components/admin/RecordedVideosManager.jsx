@@ -13,6 +13,7 @@ export default function RecordedVideosManager() {
 
   const [videos, setVideos] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
@@ -28,6 +29,7 @@ export default function RecordedVideosManager() {
     title: '',
     url: '',
     category: '',
+    userId: '',
     duration: '',
     description: '',
     thumbnailUrl: '',
@@ -69,12 +71,14 @@ export default function RecordedVideosManager() {
     setLoading(true);
     setError('');
     try {
-      const [catRes, vidRes] = await Promise.all([
+      const [catRes, vidRes, custRes] = await Promise.all([
         api.get('/api/training/categories'),
         api.get('/api/training/videos'),
+        api.get('/api/admin/customers').catch(() => ({ customers: [] })),
       ]);
       setCategories(catRes.categories || []);
       setVideos(vidRes.videos || []);
+      setCustomers(custRes.customers || []);
     } catch (err) {
       console.error('Error fetching recorded videos & groups:', err);
       setError('Failed to load video and group data. Please refresh.');
@@ -102,7 +106,9 @@ export default function RecordedVideosManager() {
         const matchDesc = (vid.description || '').toLowerCase().includes(q);
         const matchCat = (vid.category || '').toLowerCase().includes(q);
         const matchUrl = (vid.url || '').toLowerCase().includes(q);
-        if (!matchTitle && !matchDesc && !matchCat && !matchUrl) {
+        const matchClientName = (vid.userId?.name || '').toLowerCase().includes(q);
+        const matchClientPhone = (vid.userId?.phone || '').toLowerCase().includes(q);
+        if (!matchTitle && !matchDesc && !matchCat && !matchUrl && !matchClientName && !matchClientPhone) {
           return false;
         }
       }
@@ -114,10 +120,16 @@ export default function RecordedVideosManager() {
   // Open Video Modal for Create
   const handleOpenAddVideo = (preselectedCategory = '') => {
     setEditingVideo(null);
+    const defaultCat =
+      preselectedCategory ||
+      categories.find((c) => c.name.trim().toLowerCase() !== 'personal')?.name ||
+      categories[0]?.name ||
+      'Personal';
     setVideoFormData({
       title: '',
       url: '',
-      category: preselectedCategory || (categories[0]?.name || ''),
+      category: defaultCat,
+      userId: '',
       duration: '',
       description: '',
       thumbnailUrl: '',
@@ -135,6 +147,7 @@ export default function RecordedVideosManager() {
       title: video.title || '',
       url: video.url || '',
       category: video.category || (categories[0]?.name || ''),
+      userId: video.userId?._id || video.userId || '',
       duration: video.duration || '',
       description: video.description || '',
       thumbnailUrl: video.thumbnailUrl || '',
@@ -160,16 +173,26 @@ export default function RecordedVideosManager() {
       setVideoFormError('Please select or create a group for this video.');
       return;
     }
+    const isPersonalSelected = videoFormData.category.trim().toLowerCase() === 'personal';
+    if (isPersonalSelected && !videoFormData.userId) {
+      setVideoFormError('Please select a client for this Personal tutorial video.');
+      return;
+    }
 
     setVideoFormLoading(true);
     setVideoFormError('');
+
+    const payload = {
+      ...videoFormData,
+      userId: isPersonalSelected ? videoFormData.userId : null,
+    };
 
     try {
       if (editingVideo) {
         // PUT update
         const res = await api.put('/api/training/videos', {
           id: editingVideo._id,
-          ...videoFormData,
+          ...payload,
         });
         setVideos((prev) =>
           prev.map((v) => (v._id === editingVideo._id ? res.video : v))
@@ -178,7 +201,7 @@ export default function RecordedVideosManager() {
         broadcastTrainingUpdate({ type: 'video_updated', videoId: editingVideo._id });
       } else {
         // POST create
-        const res = await api.post('/api/training/videos', videoFormData);
+        const res = await api.post('/api/training/videos', payload);
         setVideos((prev) => [res.video, ...prev]);
         showSuccess('Video uploaded and added to group successfully.');
         broadcastTrainingUpdate({ type: 'video_created', videoId: res.video?._id });
@@ -466,8 +489,11 @@ export default function RecordedVideosManager() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 pt-2">
           {categories.map((cat) => {
-            const count = videos.filter(
-              (v) => (v.category || '').toLowerCase() === cat.name.toLowerCase()
+            const isPersonalCat = cat.name.trim().toLowerCase() === 'personal';
+            const count = videos.filter((v) =>
+              isPersonalCat
+                ? Boolean(v.isPersonal || v.userId || (v.category || '').toLowerCase() === 'personal')
+                : (v.category || '').toLowerCase() === cat.name.toLowerCase()
             ).length;
             const isFilterActive = selectedGroupFilter.toLowerCase() === cat.name.toLowerCase();
 
@@ -477,14 +503,23 @@ export default function RecordedVideosManager() {
                 className={`p-4 rounded-2xl border transition-all duration-200 flex flex-col justify-between ${
                   isFilterActive
                     ? 'border-brand-500 bg-brand-50/50 shadow-sm'
+                    : isPersonalCat
+                    ? 'border-emerald-200 bg-emerald-50/30 hover:border-emerald-300'
                     : 'border-gray-200 bg-gray-50/50 hover:border-gray-300'
                 }`}
               >
                 <div>
                   <div className="flex items-start justify-between gap-2">
-                    <h4 className="font-display font-bold text-sm text-gray-900 leading-snug">
-                      {cat.name}
-                    </h4>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <h4 className="font-display font-bold text-sm text-gray-900 leading-snug">
+                        {isPersonalCat ? '✨ Personal' : cat.name}
+                      </h4>
+                      {isPersonalCat && (
+                        <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[10px] uppercase tracking-wider">
+                          Client-Specific
+                        </span>
+                      )}
+                    </div>
                     <span className="px-2 py-0.5 rounded-full bg-white border border-gray-200 text-gray-600 font-extrabold text-[11px] shrink-0">
                       {count} {count === 1 ? 'video' : 'videos'}
                     </span>
@@ -516,24 +551,28 @@ export default function RecordedVideosManager() {
                     >
                       + Video
                     </button>
-                    <button
-                      onClick={() => handleOpenEditGroup(cat)}
-                      title="Edit group"
-                      className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-200/60 rounded-lg transition-colors"
-                    >
-                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                      </svg>
-                    </button>
-                    <button
-                      onClick={() => setDeletingGroupId(cat._id)}
-                      title="Delete group"
-                      className="p-1.5 text-red-400 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
-                    >
-                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                    </button>
+                    {!isPersonalCat && (
+                      <>
+                        <button
+                          onClick={() => handleOpenEditGroup(cat)}
+                          title="Edit group"
+                          className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-200/60 rounded-lg transition-colors"
+                        >
+                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                          </svg>
+                        </button>
+                        <button
+                          onClick={() => setDeletingGroupId(cat._id)}
+                          title="Delete group"
+                          className="p-1.5 text-red-400 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
+                        >
+                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
@@ -676,9 +715,18 @@ export default function RecordedVideosManager() {
 
                       {/* Group */}
                       <td className="py-3 px-3 whitespace-nowrap">
-                        <span className="px-2.5 py-1 rounded-xl bg-brand-50 text-brand-700 text-xs font-bold border border-brand-100">
-                          {video.category || 'Unassigned'}
-                        </span>
+                        <div className="flex flex-col items-start gap-1">
+                          <span className="px-2.5 py-1 rounded-xl bg-brand-50 text-brand-700 text-xs font-bold border border-brand-100">
+                            {video.category || 'Unassigned'}
+                          </span>
+                          {video.userId && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-emerald-50 text-emerald-800 text-[10px] font-bold border border-emerald-200">
+                              <span>👤</span>
+                              <span>{video.userId.name || 'Assigned Client'}</span>
+                              {video.userId.phone && <span className="opacity-75 font-mono">({video.userId.phone})</span>}
+                            </span>
+                          )}
+                        </div>
                       </td>
 
                       {/* Duration */}
@@ -875,11 +923,38 @@ export default function RecordedVideosManager() {
                   </option>
                   {categories.map((c) => (
                     <option key={c._id || c.name} value={c.name}>
-                      {c.name}
+                      {c.name.trim().toLowerCase() === 'personal' ? '✨ Personal (Client-Specific)' : c.name}
                     </option>
                   ))}
                 </select>
               </div>
+
+              {/* Client Selector when "Personal" group is selected */}
+              {videoFormData.category.trim().toLowerCase() === 'personal' && (
+                <div className="p-3.5 rounded-2xl bg-emerald-50/60 border border-emerald-200 space-y-2 animate-fade-in">
+                  <label className="block text-xs font-bold text-emerald-900 uppercase">
+                    Assign to Client (Personalised Video) *
+                  </label>
+                  <select
+                    required
+                    value={videoFormData.userId || ''}
+                    onChange={(e) => setVideoFormData({ ...videoFormData, userId: e.target.value })}
+                    className="w-full px-3.5 py-2.5 bg-white border border-emerald-300 rounded-xl text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                  >
+                    <option value="" disabled>
+                      -- Select a Client --
+                    </option>
+                    {customers.map((cust) => (
+                      <option key={cust._id} value={cust._id}>
+                        {cust.name} ({cust.phone})
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-[11px] text-emerald-700 font-medium">
+                    This video will appear exclusively in {customers.find((c) => c._id === videoFormData.userId)?.name || "the selected client"}'s &ldquo;Personal&rdquo; group on their Tutorials screen.
+                  </p>
+                </div>
+              )}
 
               {/* Duration */}
               <div>

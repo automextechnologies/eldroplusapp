@@ -264,7 +264,7 @@ export default function MeetingsManager() {
       ) : filteredBatches.length === 0 ? (
         <div className="text-center p-12 bg-white rounded-3xl border border-border text-xs text-gray-400">
           {filterTab === 'running'
-            ? 'No running batches currently in active progress (Day 1 - 30).'
+            ? 'No running batches currently in active progress.'
             : 'No batches found matching your filter criteria.'}
         </div>
       ) : (
@@ -282,6 +282,7 @@ export default function MeetingsManager() {
             const isSuccess = saveSuccessId === batch._id;
             const batchErr = saveError[batch._id];
             const hasLink = Boolean(current.meetingLink && current.meetingLink.trim());
+            const totalDays = batch.totalDays || 30;
 
             return (
               <div
@@ -301,7 +302,7 @@ export default function MeetingsManager() {
                           : 'bg-gray-100 text-gray-600 border-gray-200'
                       }`}>
                         {batch.isRunning
-                          ? `Day ${batch.currentDayNumber} of 30`
+                          ? `Day ${batch.currentDayNumber} of ${totalDays}`
                           : batch.isUpcoming
                           ? 'Upcoming'
                           : 'Challenge Ended'}
@@ -317,15 +318,26 @@ export default function MeetingsManager() {
                       )}
                     </div>
                     <p className="text-xs text-muted">
-                      Start Date:{' '}
+                      Start:{' '}
                       <span className="font-bold text-gray-700">
                         {new Date(batch.startDate).toLocaleDateString('en-US', {
-                          weekday: 'short',
                           month: 'short',
                           day: 'numeric',
                           year: 'numeric',
                         })}
-                      </span>{' '}
+                      </span>
+                      {batch.endDate && (
+                        <>
+                          {' '}• End:{' '}
+                          <span className="font-bold text-gray-700">
+                            {new Date(batch.endDate).toLocaleDateString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              year: 'numeric',
+                            })}
+                          </span>
+                        </>
+                      )}{' '}
                       • Enrolled:{' '}
                       <span className="font-bold text-gray-700">{batch.customerCount || 0} members</span>
                     </p>

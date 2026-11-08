@@ -3,11 +3,9 @@ import db from '../../db/dexie';
 import { TASK_CONFIG } from '../../utils/taskConfig';
 
 const STATS = [
-  { taskId: 'yoga',       label: 'Yoga',      format: (v) => `${v}min` },
   { taskId: 'yoga',       label: 'Yoga & Fitness', format: (v) => `${v}min` },
   { taskId: 'meditation', label: 'Meditation', format: (v) => `${v}min` },
   { taskId: 'water',      label: 'Water',      format: (v) => v >= 1000 ? `${(v / 1000).toFixed(1)}L` : `${v}ml` },
-  // { taskId: 'protein',    label: 'Protein',    format: (v) => `${v}g` },
   { taskId: 'sleep',      label: 'Avg Sleep',  format: (v) => `${v.toFixed(1)}h`, avg: true },
 ];
 
@@ -33,7 +31,7 @@ export default function CumulativeStats() {
 
   return (
     <div className="px-4">
-      <h2 className="font-display font-700 text-gray-900 mb-3">So Far</h2>
+      <h2 className="font-display font-bold text-[#1D1D1F] text-base mb-3 tracking-tight">So Far</h2>
       <div className="flex gap-3 overflow-x-auto no-scrollbar pb-2">
         {STATS.map((s) => {
           const value = getStat(s.taskId, s.avg);
@@ -41,15 +39,15 @@ export default function CumulativeStats() {
           return (
             <div
               key={s.taskId}
-              className="flex-shrink-0 bg-white rounded-2xl p-3 shadow-sm border border-border min-w-[80px] flex flex-col items-center"
+              className="flex-shrink-0 bg-white rounded-2xl p-3.5 shadow-[0_2px_8px_rgba(0,0,0,0.02)] border border-black/[0.06] min-w-[90px] flex flex-col items-center hover:shadow-sm transition-all"
             >
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center mb-1 bg-gray-50" style={{ color: config.color }}>
-                {config.icon}
+              <div className="w-8 h-8 rounded-xl flex items-center justify-center mb-1.5 bg-black/[0.03]" style={{ color: config?.color }}>
+                {config?.icon}
               </div>
-              <p className="font-mono font-500 text-gray-900 text-sm">
+              <p className="font-mono font-semibold text-[#1D1D1F] text-sm">
                 {value === 0 ? '—' : s.format(value)}
               </p>
-              <p className="text-xs text-muted mt-0.5">{s.label}</p>
+              <p className="text-[10px] text-[#86868B] font-semibold mt-0.5 uppercase tracking-wide">{s.label}</p>
             </div>
           );
         })}

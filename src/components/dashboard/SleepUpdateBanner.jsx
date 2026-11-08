@@ -71,26 +71,26 @@ export default function SleepUpdateBanner({ currentDayNumber }) {
   return (
     <>
       <div className="mx-4">
-        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-center gap-3">
-          <div className="text-amber-600 flex-shrink-0">
-            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <div className="bg-[#5856D6]/[0.06] border border-[#5856D6]/15 rounded-[22px] p-4 flex items-center gap-3 shadow-2xs">
+          <div className="w-10 h-10 rounded-2xl bg-[#5856D6]/15 text-[#5856D6] flex items-center justify-center flex-shrink-0">
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
             </svg>
           </div>
           <div className="flex-1">
-            <p className="font-display font-700 text-amber-800 text-sm">Log last night's sleep</p>
-            <p className="text-xs text-amber-600 mt-0.5">It counts for your Day {yesterdayDayNumber} streak</p>
+            <p className="font-display font-bold text-[#1D1D1F] text-sm">Log last night's sleep</p>
+            <p className="text-xs text-[#86868B] mt-0.5 font-medium">It counts for your Day {yesterdayDayNumber} streak</p>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
             <button
               onClick={() => setShowSheet(true)}
-              className="px-3 py-1.5 bg-amber-600 text-white rounded-lg text-xs font-medium"
+              className="px-3.5 py-1.5 bg-[#00A86B] hover:bg-[#00915C] text-white rounded-full text-xs font-semibold shadow-sm active:scale-95 transition-all"
             >
               Log
             </button>
             <button
               onClick={() => setDismissed(true)}
-              className="p-1 text-amber-400"
+              className="p-1 text-[#86868B] hover:text-[#1D1D1F] transition-colors"
               aria-label="Dismiss"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

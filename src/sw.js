@@ -32,61 +32,6 @@ registerRoute(
   })
 );
 
-// Local reminder scheduling via setTimeout
-const scheduledTimers = new Map();
-
-self.addEventListener('message', (event) => {
-  if (event.data?.type === 'SCHEDULE_REMINDERS') {
-    scheduledTimers.forEach((id) => clearTimeout(id));
-    scheduledTimers.clear();
-
-    for (const reminder of event.data.reminders) {
-      if (reminder.delayMs <= 0) continue;
-      const timerId = setTimeout(() => {
-        self.registration.showNotification('eldroplus', {
-          body: reminder.msg,
-          icon: '/pwa-192x192.png',
-          badge: '/badge-72x72.png',
-          tag: `${reminder.taskId}-${reminder.hour}-local`,
-          data: { url: '/', taskId: reminder.taskId },
-        });
-      }, reminder.delayMs);
-
-      scheduledTimers.set(`${reminder.taskId}-${reminder.hour}`, timerId);
-    }
-  }
-
-  if (event.data?.type === 'TASK_COMPLETED') {
-    const { taskId } = event.data;
-    if (taskId !== 'sleep') {
-      scheduledTimers.forEach((timerId, key) => {
-        if (key.startsWith(taskId)) {
-          clearTimeout(timerId);
-          scheduledTimers.delete(key);
-        }
-      });
-    }
-  }
-});
-
-self.addEventListener('notificationclick', (event) => {
-  event.notification.close();
-  const url = event.notification.data?.url || '/';
-  event.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
-      for (const client of clientList) {
-        if (client.url.includes(self.location.origin) && 'focus' in client) {
-          if ('navigate' in client && url && url !== '/') {
-            client.navigate(url);
-          }
-          return client.focus();
-        }
-      }
-      return clients.openWindow(url);
-    })
-  );
-});
-
 // Background sync for offline task logs
 self.addEventListener('sync', (event) => {
   if (event.tag === 'task-sync') {
@@ -95,39 +40,9 @@ self.addEventListener('sync', (event) => {
 });
 
 async function replaySyncQueue() {
-  // Open Dexie from SW context is complex; instead we just send a message to clients
   const clientList = await clients.matchAll({ type: 'window' });
   for (const client of clientList) {
     client.postMessage({ type: 'REPLAY_SYNC_QUEUE' });
   }
 }
 
-// Import Firebase scripts from CDN
-importScripts('https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js');
-importScripts('https://www.gstatic.com/firebasejs/9.22.0/firebase-messaging-compat.js');
-
-firebase.initializeApp({
-  apiKey: "AIzaSyC--w_4Zx7ozuhhrHn9TuLQ6QjU6peGHPg",
-  authDomain: "eldroplus.firebaseapp.com",
-  projectId: "eldroplus",
-  storageBucket: "eldroplus.firebasestorage.app",
-  messagingSenderId: "1011847414777",
-  appId: "1:1011847414777:web:4d2d28281d7670d0b7f328"
-});
-
-const messaging = firebase.messaging();
-
-messaging.onBackgroundMessage((payload) => {
-  console.log('[sw.js] Received background message ', payload);
-  
-  const notificationTitle = payload.notification?.title || payload.data?.title || 'eldroplus';
-  const notificationOptions = {
-    body: payload.notification?.body || payload.data?.body || 'You have a new health update.',
-    icon: payload.notification?.icon || payload.data?.icon || '/pwa-192x192.png',
-    badge: '/badge-72x72.png',
-    tag: payload.data?.tag || `eldroplus-push-${Date.now()}`,
-    data: payload.data || { url: '/' }
-  };
-
-  self.registration.showNotification(notificationTitle, notificationOptions);
-});

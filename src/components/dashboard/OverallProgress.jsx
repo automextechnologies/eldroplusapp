@@ -1,10 +1,12 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import db from '../../db/dexie';
 import { isTaskCompleted } from '../../utils/taskCompletion';
+import { useUserStore } from '../../store/useUserStore';
 
 const REQUIRED = ['yoga', 'meditation', 'water'];
 
 export default function OverallProgress({ currentDayNumber }) {
+  const totalDays = useUserStore((s) => s.getTotalDays)();
   const logs = useLiveQuery(() => db.taskLogs.toArray(), []);
 
   if (!logs) return null;
@@ -20,35 +22,28 @@ export default function OverallProgress({ currentDayNumber }) {
   }
 
   const missedCount = (currentDayNumber - 1) - completedDays;
-  const daysToGo = 30 - currentDayNumber + 1;
+  const daysToGo = Math.max(0, totalDays - currentDayNumber + 1);
 
   return (
-    <div className="mx-4 bg-white rounded-2xl p-4 shadow-sm border border-border">
+    <div className="mx-4 bg-white rounded-[22px] p-4 shadow-[0_2px_12px_rgba(0,0,0,0.03)] border border-black/[0.06]">
       <div className="flex items-center justify-between mb-3">
-        <h2 className="font-display font-700 text-gray-900 text-sm">Overall Progress</h2>
-        <span className="text-xs text-muted">{completedDays} / 30 days</span>
-      </div>
-
-      <div className="w-full bg-gray-100 rounded-full h-3 mb-3">
-        <div
-          className="h-3 rounded-full bg-primary transition-all duration-700"
-          style={{ width: `${(completedDays / 30) * 100}%` }}
-        />
+        <h2 className="font-display font-bold text-[#1D1D1F] text-sm tracking-tight">Overall Progress</h2>
+        <span className="text-xs text-[#86868B] font-semibold">{completedDays} / {totalDays} days</span>
       </div>
 
       <div className="flex gap-3 text-center">
         <div className="flex-1">
-          <p className="font-mono font-500 text-green-600 text-xl">{completedDays}</p>
-          <p className="text-xs text-muted">Complete</p>
+          <p className="font-mono font-bold text-[#34C759] text-xl">{completedDays}</p>
+          <p className="text-[10px] text-[#86868B] font-semibold uppercase tracking-wider mt-0.5">Complete</p>
         </div>
         <div className="flex-1">
-          <p className="font-mono font-500 text-gray-900 text-xl">{daysToGo}</p>
-          <p className="text-xs text-muted">To go</p>
+          <p className="font-mono font-bold text-[#1D1D1F] text-xl">{daysToGo}</p>
+          <p className="text-[10px] text-[#86868B] font-semibold uppercase tracking-wider mt-0.5">To go</p>
         </div>
         {missedCount > 0 && (
           <div className="flex-1">
-            <p className="font-mono font-500 text-red-400 text-xl">{missedCount}</p>
-            <p className="text-xs text-muted">Missed</p>
+            <p className="font-mono font-bold text-[#FF3B30] text-xl">{missedCount}</p>
+            <p className="text-[10px] text-[#86868B] font-semibold uppercase tracking-wider mt-0.5">Missed</p>
           </div>
         )}
       </div>

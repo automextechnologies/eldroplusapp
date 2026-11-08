@@ -82,20 +82,20 @@ export default function TaskMeasureModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-950/60 backdrop-blur-sm animate-fade-in"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30 backdrop-blur-md animate-fade-in"
       onClick={(e) => {
         if (e.target === e.currentTarget && !loading) onClose();
       }}
     >
       <div
-        className="w-full max-w-sm bg-white rounded-3xl border border-gray-200/90 shadow-2xl overflow-hidden animate-scale-in"
+        className="w-full max-w-sm bg-white rounded-[28px] border border-black/[0.08] shadow-[0_24px_48px_rgba(0,0,0,0.18)] overflow-hidden animate-scale-in"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Modal Header */}
-        <div className="px-5 pt-5 pb-4 flex items-center justify-between border-b border-gray-100 bg-gray-50/60">
+        <div className="px-5 pt-5 pb-4 flex items-center justify-between border-b border-black/[0.06] bg-black/[0.015]">
           <div className="flex items-center gap-3">
             <div
-              className="w-11 h-11 rounded-2xl flex items-center justify-center text-lg flex-shrink-0 shadow-inner"
+              className="w-11 h-11 rounded-2xl flex items-center justify-center text-lg flex-shrink-0"
               style={{
                 backgroundColor: config.color + '15',
                 color: config.color,
@@ -105,14 +105,14 @@ export default function TaskMeasureModal({
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="font-display font-extrabold text-base text-gray-900 leading-tight">
+                <span className="font-display font-bold text-base text-[#1D1D1F] leading-tight">
                   {config.name}
                 </span>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-brand-50 text-brand-700 border border-brand-200/60">
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold bg-black/[0.04] text-[#1D1D1F] border border-black/[0.06]">
                   Day {dayNumber}
                 </span>
               </div>
-              <p className="text-[11px] text-gray-500 font-medium mt-0.5">
+              <p className="text-[11px] text-[#86868B] font-medium mt-0.5">
                 {dateFormatted || `Day ${dayNumber} Log`}
               </p>
             </div>
@@ -122,7 +122,7 @@ export default function TaskMeasureModal({
             type="button"
             onClick={onClose}
             disabled={loading}
-            className="w-8 h-8 rounded-full border border-gray-200 bg-white hover:bg-gray-100 flex items-center justify-center text-gray-400 hover:text-gray-700 text-sm font-bold transition-colors disabled:opacity-40"
+            className="w-7 h-7 rounded-full bg-black/[0.05] hover:bg-black/[0.08] flex items-center justify-center text-[#86868B] hover:text-[#1D1D1F] text-xs font-bold transition-colors disabled:opacity-40"
             aria-label="Close popup"
           >
             ✕
@@ -133,12 +133,12 @@ export default function TaskMeasureModal({
         <div className="p-5 space-y-5">
           {/* Target Guidance Pill */}
           {limits.targetText && (
-            <div className="flex items-center justify-between bg-gray-50 border border-gray-100 px-3.5 py-2 rounded-xl text-xs font-semibold text-gray-600">
+            <div className="flex items-center justify-between bg-black/[0.025] border border-black/[0.05] px-3.5 py-2 rounded-xl text-xs font-semibold text-[#1D1D1F]">
               <span className="flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: config.color }} />
                 <span>{limits.targetText}</span>
               </span>
-              <span className="text-[11px] font-mono font-bold text-gray-400 uppercase">
+              <span className="text-[11px] font-mono font-bold text-[#86868B] uppercase">
                 {config.unit}
               </span>
             </div>
@@ -146,7 +146,7 @@ export default function TaskMeasureModal({
 
           {/* Stepper with Large Input Field */}
           <div className="space-y-2">
-            <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-wider text-center">
+            <label className="block text-[11px] font-semibold text-[#86868B] uppercase tracking-wider text-center">
               Add Measure ({config.unit})
             </label>
             <div className="flex items-center justify-center gap-3">
@@ -155,7 +155,7 @@ export default function TaskMeasureModal({
                 type="button"
                 onClick={() => handleStep(-1)}
                 disabled={loading || Number(val || 0) <= 0}
-                className="w-12 h-12 rounded-2xl bg-gray-100 hover:bg-gray-200 active:scale-95 text-gray-800 font-black text-2xl flex items-center justify-center transition-all disabled:opacity-30 disabled:cursor-not-allowed shadow-xs border border-gray-200/80"
+                className="w-12 h-12 rounded-full bg-black/[0.04] hover:bg-black/[0.08] active:scale-95 text-[#1D1D1F] font-light text-2xl flex items-center justify-center transition-all disabled:opacity-30 disabled:cursor-not-allowed border border-black/[0.05]"
                 aria-label="Decrease measure"
               >
                 −
@@ -171,9 +171,9 @@ export default function TaskMeasureModal({
                   onChange={handleInputChange}
                   placeholder="0"
                   autoFocus
-                  className="w-full h-13 text-center font-mono font-black text-2xl sm:text-3xl text-gray-900 bg-white border-2 border-gray-200 focus:border-brand-500 rounded-2xl focus:outline-none shadow-inner transition-all px-2"
+                  className="w-full h-13 text-center font-mono font-semibold text-2xl sm:text-3xl text-[#1D1D1F] bg-black/[0.03] border border-black/[0.08] focus:border-[#00A86B] focus:ring-4 focus:ring-[#00A86B]/15 rounded-2xl focus:outline-none transition-all px-2"
                 />
-                <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400 pointer-events-none font-mono">
+                <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-[#86868B] pointer-events-none font-mono">
                   {config.unit}
                 </span>
               </div>
@@ -183,7 +183,7 @@ export default function TaskMeasureModal({
                 type="button"
                 onClick={() => handleStep(1)}
                 disabled={loading || Number(val || 0) >= limits.max}
-                className="w-12 h-12 rounded-2xl bg-gray-100 hover:bg-gray-200 active:scale-95 text-gray-800 font-black text-2xl flex items-center justify-center transition-all disabled:opacity-30 disabled:cursor-not-allowed shadow-xs border border-gray-200/80"
+                className="w-12 h-12 rounded-full bg-black/[0.04] hover:bg-black/[0.08] active:scale-95 text-[#1D1D1F] font-light text-2xl flex items-center justify-center transition-all disabled:opacity-30 disabled:cursor-not-allowed border border-black/[0.05]"
                 aria-label="Increase measure"
               >
                 +
@@ -194,7 +194,7 @@ export default function TaskMeasureModal({
           {/* Quick-Add Chips */}
           {limits.quickAdds.length > 0 && (
             <div className="space-y-1.5 pt-1">
-              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center">
+              <p className="text-[10px] font-semibold text-[#86868B] uppercase tracking-widest text-center">
                 {taskId === 'sleep' ? 'Quick Hours' : 'Quick Add'}
               </p>
               <div className="flex justify-center gap-2 flex-wrap">
@@ -204,7 +204,7 @@ export default function TaskMeasureModal({
                     type="button"
                     onClick={() => handleQuickAdd(addVal)}
                     disabled={loading}
-                    className="px-3 py-1.5 rounded-xl border border-gray-200 hover:border-brand-500/40 text-xs font-bold transition-all bg-white active:scale-95 text-gray-700 hover:text-gray-900 shadow-2xs hover:bg-brand-50/40"
+                    className="px-3.5 py-1.5 rounded-full border border-black/[0.06] hover:border-black/[0.12] text-xs font-semibold transition-all bg-black/[0.03] hover:bg-black/[0.06] active:scale-95 text-[#1D1D1F]"
                   >
                     {taskId === 'sleep' ? `${addVal} hrs` : `+${addVal} ${config.unit}`}
                   </button>
@@ -219,7 +219,7 @@ export default function TaskMeasureModal({
               type="button"
               onClick={onClose}
               disabled={loading}
-              className="flex-1 py-3 px-4 rounded-2xl border border-gray-200 hover:bg-gray-50 text-gray-600 font-bold text-xs active:scale-95 transition-all text-center"
+              className="flex-1 py-3 px-4 rounded-2xl border border-black/[0.06] bg-black/[0.03] hover:bg-black/[0.06] text-[#1D1D1F] font-semibold text-xs active:scale-95 transition-all text-center"
             >
               Cancel
             </button>
@@ -227,7 +227,7 @@ export default function TaskMeasureModal({
               type="button"
               onClick={handleSaveClick}
               disabled={loading}
-              className="flex-[2] py-3 px-4 rounded-2xl text-white font-bold text-xs active:scale-95 transition-all shadow-brand flex items-center justify-center gap-2 disabled:opacity-50 bg-brand-500 hover:bg-brand-600"
+              className="flex-[2] py-3 px-4 rounded-2xl text-white font-semibold text-xs active:scale-95 transition-all shadow-[0_2px_8px_rgba(0,168,107,0.25)] flex items-center justify-center gap-2 disabled:opacity-50 bg-[#00A86B] hover:bg-[#00915C]"
             >
               {loading ? (
                 <>
