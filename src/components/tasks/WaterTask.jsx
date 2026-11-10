@@ -11,7 +11,6 @@ export default function WaterTask({ onSubmit, existingLog, loading }) {
   const newTotal = currentTotal + sessionAdd;
   const displayTotal = currentTotal >= 1000 ? `${(currentTotal/1000).toFixed(1)}L` : `${currentTotal}ml`;
   const displayNewTotal = newTotal >= 1000 ? `${(newTotal/1000).toFixed(1)}L` : `${newTotal}ml`;
-  const goalPercent = Math.min((newTotal / 2500) * 100, 100);
 
   function handleQuickAdd(ml) {
     setSessionAdd((p) => p + ml);
@@ -37,7 +36,6 @@ export default function WaterTask({ onSubmit, existingLog, loading }) {
             <span className="text-sm font-bold text-blue-500 font-mono">({displayTotal} + {sessionAdd}ml)</span>
           )}
         </div>
-        <p className="text-xs text-muted font-medium mt-1">of 2.5L daily goal</p>
       </div>
 
       <div>

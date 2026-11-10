@@ -15,12 +15,12 @@ export default function TaskMeasureModal({
 
   // Limits & quick add presets per task
   const limits = {
-    water: { min: 0, max: 5000, step: 250, quickAdds: [250, 500, 750, 1000], targetText: 'Daily Goal: 2500 ml' },
-    sleep: { min: 0, max: 24, step: 0.5, quickAdds: [6, 7, 8, 9], targetText: 'Optimal Target: 7 - 9 hrs' },
-    protein: { min: 0, max: 200, step: 10, quickAdds: [15, 30, 45, 60], targetText: 'Daily Goal: 60 g' },
-    yoga: { min: 0, max: 180, step: 15, quickAdds: [15, 30, 45, 60], targetText: 'Target: 15 - 60 min' },
-    meditation: { min: 0, max: 120, step: 5, quickAdds: [5, 10, 15, 20], targetText: 'Target: 10 - 20 min' },
-  }[taskId] || { min: 0, max: 1000, step: 1, quickAdds: [], targetText: '' };
+    water: { min: 0, max: 5000, step: 250, quickAdds: [250, 500, 750, 1000] },
+    sleep: { min: 0, max: 24, step: 0.5, quickAdds: [6, 7, 8, 9] },
+    protein: { min: 0, max: 200, step: 10, quickAdds: [15, 30, 45, 60] },
+    yoga: { min: 0, max: 180, step: 15, quickAdds: [15, 30, 45, 60] },
+    meditation: { min: 0, max: 120, step: 5, quickAdds: [5, 10, 15, 20] },
+  }[taskId] || { min: 0, max: 1000, step: 1, quickAdds: [] };
 
   // STRICT REQUIREMENT: "dont use any default values for new taks. start with zero."
   // If an existing log with amount > 0 is passed, allow user to edit that amount.
@@ -131,19 +131,6 @@ export default function TaskMeasureModal({
 
         {/* Modal Body */}
         <div className="p-5 space-y-5">
-          {/* Target Guidance Pill */}
-          {limits.targetText && (
-            <div className="flex items-center justify-between bg-black/[0.025] border border-black/[0.05] px-3.5 py-2 rounded-xl text-xs font-semibold text-[#1D1D1F]">
-              <span className="flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: config.color }} />
-                <span>{limits.targetText}</span>
-              </span>
-              <span className="text-[11px] font-mono font-bold text-[#86868B] uppercase">
-                {config.unit}
-              </span>
-            </div>
-          )}
-
           {/* Stepper with Large Input Field */}
           <div className="space-y-2">
             <label className="block text-[11px] font-semibold text-[#86868B] uppercase tracking-wider text-center">

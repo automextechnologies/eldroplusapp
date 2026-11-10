@@ -48,10 +48,8 @@ export default function Dashboard() {
     try {
       const targetDate = formatDate(new Date());
       let completed = true;
-      if (taskId === 'water') {
-        completed = data.amount >= 2500;
-      } else if (taskId === 'protein') {
-        completed = data.amount >= 60;
+      if (taskId === 'water' || taskId === 'protein') {
+        completed = Number(data.amount) > 0;
       }
 
       const logData = {
@@ -363,7 +361,6 @@ export default function Dashboard() {
                   <span className="text-[11px] font-semibold text-[#0071E3] uppercase tracking-widest flex items-center gap-1.5">
                     {TASK_CONFIG.water.icon} Water Trend
                   </span>
-                  <span className="text-xs font-semibold text-[#86868B]">Target: 2.5L</span>
                 </div>
                 <div className="h-32">
                   <ResponsiveContainer width="100%" height="100%">
@@ -390,7 +387,6 @@ export default function Dashboard() {
                   <span className="text-[11px] font-semibold text-[#5856D6] uppercase tracking-widest flex items-center gap-1.5">
                     {TASK_CONFIG.sleep.icon} Sleep Trend
                   </span>
-                  <span className="text-xs font-semibold text-[#86868B]">Target: 7-9h</span>
                 </div>
                 <div className="h-32">
                   <ResponsiveContainer width="100%" height="100%">
@@ -418,7 +414,6 @@ export default function Dashboard() {
                   <span className="text-[11px] font-semibold text-[#34C759] uppercase tracking-widest flex items-center gap-1.5">
                     {TASK_CONFIG.yoga.icon} Yoga & Fitness Trend
                   </span>
-                  <span className="text-xs font-semibold text-[#86868B]">Target: 15-60m</span>
                 </div>
                 <div className="h-32">
                   <ResponsiveContainer width="100%" height="100%">
@@ -445,7 +440,6 @@ export default function Dashboard() {
                   <span className="text-[11px] font-semibold text-[#AF52DE] uppercase tracking-widest flex items-center gap-1.5">
                     {TASK_CONFIG.meditation.icon} Meditation Trend
                   </span>
-                  <span className="text-xs font-semibold text-[#86868B]">Target: 5-15m</span>
                 </div>
                 <div className="h-32">
                   <ResponsiveContainer width="100%" height="100%">

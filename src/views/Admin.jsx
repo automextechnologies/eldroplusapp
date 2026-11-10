@@ -3299,10 +3299,8 @@ export default function Admin() {
                                     onChange={(e) => {
                                       const isChecking = e.target.checked;
                                       let newAmount = log.amount;
-                                      if (taskId === 'water' && isChecking && log.amount < 2500) {
-                                        newAmount = 2500;
-                                      } else if (taskId === 'protein' && isChecking && log.amount < 60) {
-                                        newAmount = 60;
+                                      if ((taskId === 'water' || taskId === 'protein') && isChecking && (!log.amount || log.amount <= 0)) {
+                                        newAmount = taskId === 'water' ? 250 : 10;
                                       } else if ((taskId === 'water' || taskId === 'protein') && !isChecking) {
                                         newAmount = 0;
                                       }
@@ -3319,10 +3317,8 @@ export default function Admin() {
                                     onBlur={(e) => {
                                       const newAmt = Number(e.target.value);
                                       let updatedCompleted = log.completed;
-                                      if (taskId === 'water') {
-                                        updatedCompleted = selectedTaskDay === customerDayNum ? false : newAmt >= 2500;
-                                      } else if (taskId === 'protein') {
-                                        updatedCompleted = selectedTaskDay === customerDayNum ? false : newAmt >= 60;
+                                      if (taskId === 'water' || taskId === 'protein') {
+                                        updatedCompleted = selectedTaskDay === customerDayNum ? false : newAmt > 0;
                                       } else if (taskId === 'yoga' || taskId === 'meditation' || taskId === 'sleep') {
                                         updatedCompleted = newAmt > 0;
                                       }

@@ -313,10 +313,8 @@ export default function DailyTasks() {
       const targetDate = dayItem ? format(dayItem.date, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd');
 
       let completed = true;
-      if (taskId === 'water') {
-        completed = targetDayNum === currentDayNumber ? false : Number(data.amount) >= 2500;
-      } else if (taskId === 'protein') {
-        completed = targetDayNum === currentDayNumber ? false : Number(data.amount) >= 60;
+      if (taskId === 'water' || taskId === 'protein') {
+        completed = targetDayNum === currentDayNumber ? false : Number(data.amount) > 0;
       } else if (taskId === 'sleep' || taskId === 'yoga' || taskId === 'meditation') {
         completed = Number(data.amount) > 0;
       }

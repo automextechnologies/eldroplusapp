@@ -52,14 +52,6 @@ export default function DayCarouselCard({
     return `${amt} ${cfg?.unit || ''}`;
   }
 
-  function getTaskTargetText(taskId) {
-    if (taskId === 'water') return 'Target: 2.5L';
-    if (taskId === 'yoga') return 'Target: 15-60 min';
-    if (taskId === 'meditation') return 'Target: 10-20 min';
-    if (taskId === 'sleep') return 'Target: 7-9 hrs';
-    return '';
-  }
-
   // Handle task click
   function handleTaskItemClick(taskId, isLocked, lockReason) {
     if (!isUnlocked) {
@@ -263,9 +255,6 @@ export default function DayCarouselCard({
                             }`}
                           >
                             {formatTaskAmount(taskId, log)}
-                          </span>
-                          <span className="text-[10px] text-[#86868B] font-medium truncate">
-                            · {getTaskTargetText(taskId)}
                           </span>
                         </div>
                       </div>

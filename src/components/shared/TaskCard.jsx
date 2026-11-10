@@ -23,16 +23,10 @@ export default function TaskCard({
   const [val, setVal] = useState(0);
 
   useEffect(() => {
-    if (log) {
-      setVal(log.amount || 0);
+    if (log && log.amount !== undefined && log.amount !== null && Number(log.amount) > 0) {
+      setVal(log.amount);
     } else {
-      // Default placeholder values for empty logging
-      if (taskId === 'sleep') setVal(8);
-      else if (taskId === 'water') setVal(1000);
-      else if (taskId === 'protein') setVal(30);
-      else if (taskId === 'yoga') setVal(30);
-      else if (taskId === 'meditation') setVal(15);
-      else setVal(0);
+      setVal(0);
     }
   }, [log, expanded]);
 

@@ -1,5 +1,11 @@
 {
   "/[[...slug]]/page": "app/[[...slug]]/page.js",
-  "/api/user/live-session/route": "app/api/user/live-session/route.js",
-  "/api/training/categories/route": "app/api/training/categories/route.js"
+  "/api/admin/customers/route": "app/api/admin/customers/route.js",
+  "/api/training/videos/route": "app/api/training/videos/route.js",
+  "/api/admin/meetings/route": "app/api/admin/meetings/route.js",
+  "/api/admin/batches/route": "app/api/admin/batches/route.js",
+  "/api/admin/packages/route": "app/api/admin/packages/route.js",
+  "/api/admin/sales-reps/route": "app/api/admin/sales-reps/route.js",
+  "/api/admin/customer-tasks/route": "app/api/admin/customer-tasks/route.js",
+  "/api/admin/tickets/route": "app/api/admin/tickets/route.js"
 }

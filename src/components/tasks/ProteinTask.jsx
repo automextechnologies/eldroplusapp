@@ -9,7 +9,6 @@ export default function ProteinTask({ onSubmit, existingLog, loading }) {
   const [custom, setCustom] = useState('');
 
   const newTotal = currentTotal + sessionAdd;
-  const goalPercent = Math.min((newTotal / 60) * 100, 100);
 
   function handleQuickAdd(g) {
     setSessionAdd((p) => p + g);
@@ -35,7 +34,6 @@ export default function ProteinTask({ onSubmit, existingLog, loading }) {
             <span className="text-sm font-bold text-orange-500 font-mono">({currentTotal}g + {sessionAdd}g)</span>
           )}
         </div>
-        <p className="text-xs text-muted font-medium mt-1">of 60g daily goal</p>
       </div>
 
       <div>
